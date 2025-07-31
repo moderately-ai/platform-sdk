@@ -3,11 +3,16 @@
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
+import aiofiles
+import httpx
+
+from ..exceptions import APIError
 from ..types import File, PaginatedResponse
+from ._base import AsyncBaseResource
 
 
-class AsyncFiles:
-    """Async manage files in your team.
+class AsyncFiles(AsyncBaseResource):
+    """Manage files in your teams (async version).
 
     Examples:
         ```python

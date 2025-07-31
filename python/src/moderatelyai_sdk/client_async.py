@@ -98,8 +98,8 @@ class AsyncModeratelyAI(AsyncBaseClient):
         if default_query is None:
             default_query = {}
 
-        # Add team_ids as a default query parameter
-        default_query = {**default_query, "team_ids": [team_id]}
+        # Add teamIds as a default query parameter (API expects camelCase)
+        default_query = {**default_query, "teamIds": [team_id]}
 
         super().__init__(
             api_key=api_key,

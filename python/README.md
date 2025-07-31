@@ -1,12 +1,14 @@
 # Moderately AI Python SDK
 
-The official Python SDK for the Moderately AI platform, providing easy access to content moderation and AI safety APIs.
+The official Python SDK for the Moderately AI platform, providing programmatic access to agents, datasets, pipelines, and team management.
 
 ## Features
 
 - **Python 3.8+ Support**: Compatible with Python 3.8 and later versions
 - **Type Safety**: Full type annotations with mypy support
 - **Async/Await**: Built-in support for asynchronous operations
+- **Team-scoped Operations**: Automatic filtering and scoping to your team
+- **Resource Management**: Agents, datasets, pipelines, files, and users
 - **Error Handling**: Comprehensive exception handling for different error scenarios
 - **Rate Limiting**: Built-in rate limit handling and retry logic
 - **Modern Tooling**: Uses PDM for dependency management, Ruff for linting, and pytest for testing
@@ -20,65 +22,83 @@ pip install moderatelyai-sdk
 ## Quick Start
 
 ```python
-from moderatelyai_sdk import ModeratelyAIClient
+import moderatelyai_sdk
 
-# Initialize the client
-client = ModeratelyAIClient(api_key="your-api-key")
+# Initialize with environment variables (recommended)
+client = moderatelyai_sdk.ModeratelyAI()  # reads MODERATELY_API_KEY and MODERATELY_TEAM_ID
 
-# Moderate text content
-result = client.moderate_content(
-    content="Hello world!",
-    content_type="text"
+# Or initialize with explicit parameters
+client = moderatelyai_sdk.ModeratelyAI(
+    team_id="your-team-id",
+    api_key="your-api-key"
 )
 
-print(result)
-# {'success': True, 'data': {'score': 0.1, 'flagged': False}}
+# Use the client - all operations are automatically scoped to your team
+users = client.users.list()
+dataset = client.datasets.create(name="My Dataset")
+agents = client.agents.list()
 ```
 
 ## Usage
 
-### Basic Content Moderation
+### Working with Datasets
 
 ```python
-from moderatelyai_sdk import ModeratelyAIClient
+from moderatelyai_sdk import ModeratelyAI
 
-client = ModeratelyAIClient(api_key="your-api-key")
+client = ModeratelyAI(team_id="your-team-id", api_key="your-api-key")
 
-# Moderate text
-result = client.moderate_content("Some text to moderate")
+# Create a dataset
+dataset = client.datasets.create(
+    name="Customer Data",
+    description="Customer interaction dataset"
+)
 
-if result["success"]:
-    data = result["data"]
-    if data["flagged"]:
-        print(f"Content flagged with score: {data['score']}")
-    else:
-        print("Content is safe")
+# Upload data to the dataset
+version = dataset.upload_data("/path/to/data.csv")
+print(f"Uploaded version {version.version_no} with {version.row_count} rows")
+
+# List all datasets
+datasets = client.datasets.list()
+```
+
+### Working with Agents
+
+```python
+# List all agents in your team
+agents = client.agents.list()
+
+# Create and run an agent execution
+execution = client.agent_executions.create(
+    agent_id="agent_123",
+    input_data={"query": "Process this data"}
+)
 ```
 
 ### Using Context Manager
 
 ```python
-from moderatelyai_sdk import ModeratelyAIClient
+from moderatelyai_sdk import ModeratelyAI
 
-with ModeratelyAIClient(api_key="your-api-key") as client:
-    result = client.moderate_content("Text to check")
-    print(result)
+with ModeratelyAI(team_id="your-team-id", api_key="your-api-key") as client:
+    users = client.users.list()
+    print(f"Found {len(users)} users")
 ```
 
 ### Error Handling
 
 ```python
-from moderatelyai_sdk import ModeratelyAIClient, APIError, AuthenticationError
+from moderatelyai_sdk import ModeratelyAI, APIError, AuthenticationError
 
-client = ModeratelyAIClient(api_key="your-api-key")
+client = ModeratelyAI(team_id="your-team-id", api_key="your-api-key")
 
 try:
-    result = client.moderate_content("Some content")
+    dataset = client.datasets.create(name="Test Dataset")
 except AuthenticationError:
     print("Invalid API key")
 except APIError as e:
-    print(f"API error: {e.message}")
-    if e.status_code:
+    print(f"API error: {e}")
+    if hasattr(e, 'status_code'):
         print(f"Status code: {e.status_code}")
 ```
 
@@ -87,7 +107,8 @@ except APIError as e:
 The client can be configured with various options:
 
 ```python
-client = ModeratelyAIClient(
+client = ModeratelyAI(
+    team_id="your-team-id",
     api_key="your-api-key",
     base_url="https://api.moderately.ai",  # Custom API endpoint
     timeout=30,                            # Request timeout in seconds
@@ -122,22 +143,30 @@ pdm run mypy src/
 
 ## API Reference
 
-### ModeratelyAIClient
+### ModeratelyAI
 
 The main client class for interacting with the Moderately AI API.
 
-#### Methods
+#### Resource Groups
 
-- `moderate_content(content: str, content_type: str = "text", options: Optional[Dict] = None) -> APIResponse`
-- `get_status() -> APIResponse`
+- `client.users`: Manage users in your team
+- `client.teams`: Manage team settings and information
+- `client.agents`: Manage AI agents
+- `client.agent_executions`: Create and monitor agent executions
+- `client.datasets`: Manage datasets with rich functionality (upload, download, schema management)
+- `client.pipelines`: Manage data pipelines
+- `client.files`: Upload and manage files
 
 ### Exceptions
 
 - `ModeratelyAIError`: Base exception class
 - `APIError`: Raised for API-related errors
 - `AuthenticationError`: Raised for authentication failures
+- `ConflictError`: Raised for resource conflicts
+- `NotFoundError`: Raised when resources are not found
 - `RateLimitError`: Raised when rate limits are exceeded
 - `TimeoutError`: Raised for request timeouts
+- `UnprocessableEntityError`: Raised for validation errors
 - `ValidationError`: Raised for input validation errors
 
 ## License

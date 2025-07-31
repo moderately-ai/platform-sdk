@@ -5,10 +5,21 @@
 groups = ["default", "dev", "lint", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:f61a6a580b1c3c8195e5d04443119bca187b16d471a3ae33e60716c1f8afc917"
+content_hash = "sha256:e0f624ed7fbee46b0ee387d5e88b207fd8365a9fc04248eb5896f3e6e9304f90"
 
 [[metadata.targets]]
 requires_python = ">=3.8"
+
+[[package]]
+name = "aiofiles"
+version = "24.1.0"
+requires_python = ">=3.8"
+summary = "File support for asyncio."
+groups = ["default"]
+files = [
+    {file = "aiofiles-24.1.0-py3-none-any.whl", hash = "sha256:b4ec55f4195e3eb5d7abd1bf7e061763e864dd4954231fb8539a0ef8bb8260e5"},
+    {file = "aiofiles-24.1.0.tar.gz", hash = "sha256:22a075c9e5a3810f0c2e48f3008c94d68c65d763b9b03857924c99e57355166c"},
+]
 
 [[package]]
 name = "annotated-types"

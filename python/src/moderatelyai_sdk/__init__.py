@@ -1,6 +1,6 @@
 """Moderately AI Python SDK - First-class API client for the Moderately AI platform."""
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __author__ = "Moderately AI"
 __email__ = "sdk@moderately.ai"
 
@@ -19,6 +19,8 @@ from .exceptions import (
     ValidationError,
 )
 from .models import DatasetModel, DatasetDataVersionModel, DatasetSchemaVersionModel, SchemaBuilder, FileModel
+from .models.dataset_async import DatasetAsyncModel, DatasetDataVersionAsyncModel
+from .models.dataset_schema_version_async import DatasetSchemaVersionAsyncModel
 from .types import APIResponse
 
 __all__ = [
@@ -27,12 +29,16 @@ __all__ = [
     "AsyncModeratelyAI",
     # Configuration
     "RetryConfig",
-    # Models
+    # Sync Models
     "DatasetModel",
     "DatasetDataVersionModel", 
     "DatasetSchemaVersionModel",
     "SchemaBuilder",
     "FileModel",
+    # Async Models
+    "DatasetAsyncModel",
+    "DatasetDataVersionAsyncModel",
+    "DatasetSchemaVersionAsyncModel",
     # Exceptions
     "ModeratelyAIError",
     "APIError",
