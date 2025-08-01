@@ -2,6 +2,7 @@
 
 from typing import Optional
 
+from ..models.user import UserModel
 from ..types import PaginatedResponse, User
 from ._base import BaseResource
 
@@ -9,28 +10,27 @@ from ._base import BaseResource
 class Users(BaseResource):
     """Manage users in your organization.
 
+    Note: The Users resource only supports read and update operations.
+    User creation and deletion are handled through other mechanisms.
+
     Examples:
         ```python
-        # List all users
-        users = client.users.list()
+        # List all users (returns raw paginated data)
+        users_response = client.users.list()
 
-        # Get a specific user
+        # Get a specific user with rich functionality
         user = client.users.retrieve("user_123")
-
-        # Create a new user
-        user = client.users.create(
-            email="user@example.com",
-            name="John Doe"
-        )
-
-        # Update a user
-        user = client.users.update(
-            "user_123",
-            name="Jane Doe"
-        )
-
-        # Delete a user
-        client.users.delete("user_123")
+        
+        # Use rich user operations
+        print(f"User: {user.display_name()} ({user.full_name})")
+        print(f"Nickname: {user.nickname}")
+        print(f"Created: {user.formatted_created_at()}")
+        
+        # Update user profile
+        user = user.update_profile(full_name="Jane Smith")
+        
+        # Or update via resource
+        user = client.users.update("user_123", full_name="John Doe")
         ```
     """
 
@@ -53,7 +53,7 @@ class Users(BaseResource):
         Returns:
             Paginated list of users.
         """
-        return self._get(
+        response = self._get(
             "/users",
             options={
                 "query": {
@@ -64,89 +64,55 @@ class Users(BaseResource):
                 }
             },
         )
+        
+        # Convert items to UserModel instances
+        if "items" in response:
+            response["items"] = [
+                UserModel(item, self._client) for item in response["items"]
+            ]
+        
+        return response
 
-    def retrieve(self, user_id: str) -> User:
+    def retrieve(self, user_id: str) -> UserModel:
         """Retrieve a specific user by ID.
 
         Args:
             user_id: The ID of the user to retrieve.
 
         Returns:
-            The user data.
+            The user model with rich functionality.
 
         Raises:
             NotFoundError: If the user doesn't exist.
         """
-        return self._get(f"/users/{user_id}")
-
-    def create(
-        self,
-        *,
-        email: str,
-        name: Optional[str] = None,
-        **kwargs,
-    ) -> User:
-        """Create a new user.
-
-        Args:
-            email: The user's email address.
-            name: The user's display name.
-            **kwargs: Additional user properties.
-
-        Returns:
-            The created user data.
-
-        Raises:
-            ValidationError: If the request data is invalid.
-            ConflictError: If a user with this email already exists.
-        """
-        body = {
-            "email": email,
-            **kwargs,
-        }
-        if name is not None:
-            body["name"] = name
-
-        return self._post("/users", body=body)
+        data = self._get(f"/users/{user_id}")
+        return UserModel(data, self._client)
 
     def update(
         self,
         user_id: str,
         *,
-        email: Optional[str] = None,
-        name: Optional[str] = None,
+        full_name: str,
         **kwargs,
-    ) -> User:
+    ) -> UserModel:
         """Update an existing user.
 
         Args:
             user_id: The ID of the user to update.
-            email: New email address.
-            name: New display name.
+            full_name: New full name for the user (required).
             **kwargs: Additional properties to update.
 
         Returns:
-            The updated user data.
+            The updated user model with rich functionality.
 
         Raises:
             NotFoundError: If the user doesn't exist.
             ValidationError: If the request data is invalid.
         """
-        body = {**kwargs}
-        if email is not None:
-            body["email"] = email
-        if name is not None:
-            body["name"] = name
+        body = {
+            "fullName": full_name,
+            **kwargs,
+        }
 
-        return self._patch(f"/users/{user_id}", body=body)
-
-    def delete(self, user_id: str) -> None:
-        """Delete a user.
-
-        Args:
-            user_id: The ID of the user to delete.
-
-        Raises:
-            NotFoundError: If the user doesn't exist.
-        """
-        self._delete(f"/users/{user_id}")
+        data = self._patch(f"/users/{user_id}", body=body)
+        return UserModel(data, self._client)

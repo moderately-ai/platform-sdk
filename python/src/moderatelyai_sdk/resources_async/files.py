@@ -1,12 +1,13 @@
 """Async files resource for the Moderately AI API."""
 
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import aiofiles
 import httpx
 
 from ..exceptions import APIError
+from ..models.file_async import FileAsyncModel
 from ..types import File, PaginatedResponse
 from ._base import AsyncBaseResource
 
@@ -14,29 +15,31 @@ from ._base import AsyncBaseResource
 class AsyncFiles(AsyncBaseResource):
     """Manage files in your teams (async version).
 
+    All methods return FileAsyncModel instances which provide rich functionality
+    for file operations like downloading, deleting, and checking file properties.
+
     Examples:
         ```python
-        # List all files
+        # List all files (returns raw data)
         files = await client.files.list()
 
-        # Get a specific file
+        # Get a file with rich functionality
         file = await client.files.retrieve("file_123")
 
-        # Upload a new file
+        # Upload a new file and get FileAsyncModel
         file = await client.files.upload(
             file_path="/path/to/document.pdf",
             name="Important Document"
         )
 
-        # Upload to a specific dataset
-        file = await client.files.upload(
-            file_path="/path/to/data.csv",
-            dataset_id="dataset_123",
-            name="Training Data"
-        )
-
-        # Download a file
-        content = await client.files.download("file_123")
+        # Use rich file operations
+        if file.is_ready() and file.is_document():
+            content = await file.download()  # Download to memory
+            await file.download(path="./local_copy.pdf")  # Download to disk
+            
+        # Check file properties
+        print(f"File: {file.name} ({file.file_size} bytes)")
+        print(f"Type: {file.mime_type}, Extension: {file.get_extension()}")
 
         # Update file metadata
         file = await client.files.update(
@@ -44,14 +47,10 @@ class AsyncFiles(AsyncBaseResource):
             name="Updated Document Name"
         )
 
-        # Delete a file
-        await client.files.delete("file_123")
+        # Delete file using rich model
+        await file.delete()
         ```
     """
-
-    def __init__(self, client: Any) -> None:
-        """Initialize the async files resource."""
-        self._client = client
 
     async def list(
         self,
@@ -63,7 +62,7 @@ class AsyncFiles(AsyncBaseResource):
         page_size: int = 10,
         order_by: str = "created_at",
         order_direction: str = "desc",
-    ) -> PaginatedResponse:
+    ) -> Dict[str, Any]:
         """List all files with pagination.
 
         Note: Results are automatically filtered to the team specified in the client.
@@ -93,28 +92,30 @@ class AsyncFiles(AsyncBaseResource):
         if mime_type is not None:
             query["mime_type"] = mime_type
 
-        return await self._client._make_request(  # type: ignore[no-any-return]
-            "GET",
-            "/files",
-            cast_type=dict,
-            options={"query": query},
-        )
+        response = await self._get("/files", options={"query": query})
+        
+        # Convert items to FileAsyncModel instances
+        if "items" in response:
+            response["items"] = [
+                FileAsyncModel(item, self._client) for item in response["items"]
+            ]
+        
+        return response
 
-    async def retrieve(self, file_id: str) -> File:
+    async def retrieve(self, file_id: str) -> FileAsyncModel:
         """Retrieve a specific file by ID.
 
         Args:
             file_id: The ID of the file to retrieve.
 
         Returns:
-            The file data.
+            The file model with rich functionality.
 
         Raises:
             NotFoundError: If the file doesn't exist.
         """
-        return await self._client._make_request(
-            "GET", f"/files/{file_id}", cast_type=dict
-        )
+        data = await self._get(f"/files/{file_id}")
+        return FileAsyncModel(data, self._client)
 
     async def upload(
         self,
@@ -126,7 +127,7 @@ class AsyncFiles(AsyncBaseResource):
         dataset_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
         **kwargs,
-    ) -> File:
+    ) -> FileAsyncModel:
         """Upload a new file.
 
         Note: The file will be uploaded to the team specified in the client.
@@ -141,7 +142,7 @@ class AsyncFiles(AsyncBaseResource):
             **kwargs: Additional file properties.
 
         Returns:
-            The uploaded file data.
+            The uploaded file model with rich functionality.
 
         Raises:
             ValueError: If neither file_path nor file_data is provided.
@@ -188,9 +189,8 @@ class AsyncFiles(AsyncBaseResource):
             body["file_data"] = base64.b64encode(file_data).decode("utf-8")
             body["file_size"] = len(file_data)
 
-        return await self._client._make_request(
-            "POST", "/files", cast_type=dict, body=body
-        )
+        data = await self._post("/files", body=body)
+        return FileAsyncModel(data, self._client)
 
     async def update(
         self,
@@ -200,7 +200,7 @@ class AsyncFiles(AsyncBaseResource):
         dataset_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
         **kwargs,
-    ) -> File:
+    ) -> FileAsyncModel:
         """Update an existing file's metadata.
 
         Args:
@@ -211,7 +211,7 @@ class AsyncFiles(AsyncBaseResource):
             **kwargs: Additional properties to update.
 
         Returns:
-            The updated file data.
+            The updated file model with rich functionality.
 
         Raises:
             NotFoundError: If the file doesn't exist.
@@ -225,9 +225,8 @@ class AsyncFiles(AsyncBaseResource):
         if metadata is not None:
             body["metadata"] = metadata
 
-        return await self._client._make_request(
-            "PATCH", f"/files/{file_id}", cast_type=dict, body=body
-        )
+        data = await self._patch(f"/files/{file_id}", body=body)
+        return FileAsyncModel(data, self._client)
 
     async def delete(self, file_id: str) -> None:
         """Delete a file.
@@ -238,7 +237,7 @@ class AsyncFiles(AsyncBaseResource):
         Raises:
             NotFoundError: If the file doesn't exist.
         """
-        await self._client._make_request("DELETE", f"/files/{file_id}", cast_type=dict)
+        await self._delete(f"/files/{file_id}")
 
     async def download(self, file_id: str) -> bytes:
         """Download file content.

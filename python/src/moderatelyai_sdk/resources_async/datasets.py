@@ -95,10 +95,19 @@ class AsyncDatasets(AsyncBaseResource):
             order_direction=order_direction,
         )
 
-        return await self._get(
+        response = await self._get(
             "/datasets",
             options={"query": query},
         )
+        
+        # Convert items to DatasetAsyncModel instances
+        if "items" in response:
+            from ..models.dataset_async import DatasetAsyncModel
+            response["items"] = [
+                DatasetAsyncModel(item, self._client) for item in response["items"]
+            ]
+        
+        return response
 
     async def retrieve(self, dataset_id: str) -> "DatasetAsyncModel":
         """Retrieve a specific dataset by ID (async).

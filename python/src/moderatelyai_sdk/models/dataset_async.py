@@ -613,3 +613,74 @@ class DatasetAsyncModel(BaseAsyncModel):
             as_current=as_current,
             **kwargs,
         )
+
+    def schema_builder(self) -> "AsyncSchemaBuilder":
+        """Get an async schema builder for creating complex schemas with fluent API.
+
+        Returns:
+            Async schema builder instance for this dataset.
+
+        Example:
+            ```python
+            schema = await (dataset.schema_builder()
+                .add_column("id", "int", required=True)
+                .add_column("name", "string")
+                .with_parsing(delimiter=",", header_row=1)
+                .as_current()
+                .create())
+            ```
+        """
+        from .dataset_schema_version_async import AsyncSchemaBuilder
+        return AsyncSchemaBuilder(self.dataset_id, self._client)
+
+    async def list_schema_versions(
+        self,
+        *,
+        status: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 10,
+    ) -> List["DatasetSchemaVersionAsyncModel"]:
+        """List schema versions for this dataset (async).
+
+        Args:
+            status: Filter by status ('draft', 'current', 'archived').
+            page: Page number (1-based). Defaults to 1.
+            page_size: Number of items per page. Defaults to 10.
+
+        Returns:
+            List of async schema version models.
+        """
+        # Import here to avoid circular imports
+        from ..resources_async.dataset_schema_versions import AsyncDatasetSchemaVersions
+
+        schema_versions = AsyncDatasetSchemaVersions(self._client)
+        return await schema_versions.list(
+            dataset_ids=[self.dataset_id],
+            status=status,
+            page=page,
+            page_size=page_size,
+        )
+
+    async def get_current_schema(self) -> Optional["DatasetSchemaVersionAsyncModel"]:
+        """Get the current (active) schema version for this dataset (async).
+
+        Returns:
+            The current async schema version model, or None if no current schema exists.
+        """
+        current_schemas = await self.list_schema_versions(status="current", page_size=1)
+        return current_schemas[0] if current_schemas else None
+
+    async def get_schema_version(self, schema_version_id: str) -> "DatasetSchemaVersionAsyncModel":
+        """Get a specific schema version by ID (async).
+
+        Args:
+            schema_version_id: The schema version ID to retrieve.
+
+        Returns:
+            The async schema version model.
+        """
+        # Import here to avoid circular imports
+        from ..resources_async.dataset_schema_versions import AsyncDatasetSchemaVersions
+
+        schema_versions = AsyncDatasetSchemaVersions(self._client)
+        return await schema_versions.retrieve(schema_version_id)

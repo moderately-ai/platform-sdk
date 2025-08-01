@@ -2,6 +2,7 @@
 
 from .agent_executions import AsyncAgentExecutions
 from .agents import AsyncAgents
+from .dataset_schema_versions import AsyncDatasetSchemaVersions
 from .datasets import AsyncDatasets
 from .files import AsyncFiles
 from .pipelines import AsyncPipelines
@@ -14,6 +15,7 @@ __all__ = [
     "AsyncAgents",
     "AsyncAgentExecutions",
     "AsyncDatasets",
+    "AsyncDatasetSchemaVersions",
     "AsyncFiles",
     "AsyncPipelines",
 ]

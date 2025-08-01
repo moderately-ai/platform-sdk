@@ -61,45 +61,60 @@ class APIError(TypedDict):
 class User(TypedDict, total=False):
     """User resource type."""
 
-    id: str
-    email: str
-    name: Optional[str]
-    created_at: str
-    updated_at: str
+    userId: str
+    fullName: str
+    nickname: Optional[str]
+    createdAt: str
+    updatedAt: str
 
 
 class Team(TypedDict, total=False):
     """Team resource type."""
 
-    id: str
+    teamId: str
     name: str
-    description: Optional[str]
-    created_at: str
-    updated_at: str
+    createdAt: str
+    updatedAt: str
 
 
 class Agent(TypedDict, total=False):
     """Agent resource type."""
 
-    id: str
+    agentId: str
+    teamId: str
     name: str
     description: Optional[str]
-    team_id: str
-    created_at: str
-    updated_at: str
+    createdAt: str
+    updatedAt: str
+    lastRunAt: Optional[str]
+    totalRuns: float
+    successfulRuns: float
+    successRate: float
 
 
 class AgentExecution(TypedDict, total=False):
     """Agent execution resource type."""
 
-    id: str
-    agent_id: str
+    agentExecutionId: str
+    agentConfigurationVersionId: str
+    agentInput: Optional[Dict[str, Any]]
+    agentInputSchema: Optional[Any]
+    agentInputSummary: Optional[str]
+    agentOutput: Optional[Dict[str, Any]]
+    agentOutputSchema: Optional[Any]
+    agentOutputSummary: Optional[str]
     status: str
-    input_data: Optional[Dict[str, Any]]
-    output_data: Optional[Dict[str, Any]]
-    created_at: str
-    updated_at: str
-    completed_at: Optional[str]
+    thoughts: List[Dict[str, Any]]
+    maxActions: Optional[int]
+    currentStep: Optional[int]
+    planningInterval: Optional[int]
+    createdAt: str
+    updatedAt: str
+    startedAt: Optional[str]
+    completedAt: Optional[str]
+    failedAt: Optional[str]
+    cancelledAt: Optional[str]
+    pausedAt: Optional[str]
 
 
 class Dataset(TypedDict, total=False):
@@ -123,30 +138,31 @@ class Dataset(TypedDict, total=False):
 class Pipeline(TypedDict, total=False):
     """Pipeline resource type."""
 
-    id: str
+    pipelineId: str
+    teamId: str
     name: str
     description: Optional[str]
-    team_id: str
-    status: Optional[str]
-    config: Optional[Dict[str, Any]]
-    created_at: str
-    updated_at: str
-    last_run_at: Optional[str]
+    createdAt: str
+    updatedAt: str
+    lastRunAt: Optional[str]
+    totalRuns: float
+    successfulRuns: float
+    successRate: float
 
 
 class File(TypedDict, total=False):
     """File resource type."""
 
-    id: str
-    name: str
-    original_name: Optional[str]
-    team_id: str
-    dataset_id: Optional[str]
-    size: Optional[int]
-    mime_type: Optional[str]
-    status: Optional[str]
-    upload_url: Optional[str]
-    download_url: Optional[str]
+    fileId: str
+    fileName: str
+    originalName: Optional[str]
+    teamId: str
+    datasetId: Optional[str]
+    fileSize: Optional[int]
+    mimeType: Optional[str]
+    uploadStatus: Optional[str]
+    uploadUrl: Optional[str]
+    downloadUrl: Optional[str]
     metadata: Optional[Dict[str, Any]]
-    created_at: str
-    updated_at: str
+    createdAt: str
+    updatedAt: str

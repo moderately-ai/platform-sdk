@@ -1,52 +1,56 @@
-"""File model with rich functionality for file operations.
+"""Async file model with rich functionality for file operations.
 
-This module provides the FileModel class, which represents a file with rich
-functionality for file operations like downloading, deleting, and checking
+This module provides the FileAsyncModel class, which represents a file with rich
+functionality for async file operations like downloading, deleting, and checking
 file properties.
 
 Example:
     ```python
-    from moderatelyai_sdk import ModeratelyAI
+    import asyncio
+    from moderatelyai_sdk import AsyncModeratelyAI
     
-    client = ModeratelyAI(api_key="your_key", team_id="your_team")
+    async def main():
+        async with AsyncModeratelyAI(api_key="your_key", team_id="your_team") as client:
+            # Upload a file and get a FileAsyncModel instance
+            file = await client.files.upload("document.pdf", name="Important Document")
+            
+            # Use rich file operations
+            if file.is_ready() and file.is_document():
+                content = await file.download()  # Download to memory
+                await file.download(path="./local_copy.pdf")  # Download to disk
+                
+            # Check file properties
+            print(f"File: {file.name} ({file.file_size} bytes)")
+            print(f"Type: {file.mime_type}, Extension: {file.get_extension()}")
+            
+            # Delete when done
+            await file.delete()
     
-    # Upload a file and get a FileModel instance
-    file = client.files.upload("document.pdf", name="Important Document")
-    
-    # Use rich file operations
-    if file.is_ready() and file.is_document():
-        content = file.download()  # Download to memory
-        file.download(path="./local_copy.pdf")  # Download to disk
-        
-    # Check file properties
-    print(f"File: {file.name} ({file.file_size} bytes)")
-    print(f"Type: {file.mime_type}, Extension: {file.get_extension()}")
-    
-    # Delete when done
-    file.delete()
+    asyncio.run(main())
     ```
 """
 
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
+import aiofiles
 import httpx
 
 from ..exceptions import APIError
-from ._base import BaseModel
+from ._base_async import BaseAsyncModel
 
 
-class FileModel(BaseModel):
-    """Model representing a file with rich file operations.
+class FileAsyncModel(BaseAsyncModel):
+    """Async model representing a file with rich file operations.
     
-    FileModel provides a high-level interface for working with files in the
-    Moderately AI platform. Instead of working with raw dictionaries, you get
-    a rich object with methods for common file operations.
+    FileAsyncModel provides a high-level async interface for working with files
+    in the Moderately AI platform. Instead of working with raw dictionaries, you get
+    a rich object with async methods for common file operations.
     
-    This class is returned by file operations like:
-    - `client.files.upload()`
-    - `client.files.retrieve()`
-    - `client.files.list()` (returns list of FileModel instances)
+    This class is returned by async file operations like:
+    - `await client.files.upload()`
+    - `await client.files.retrieve()`
+    - `await client.files.list()` (returns list of FileAsyncModel instances)
     
     Attributes:
         file_id: Unique identifier for the file
@@ -65,16 +69,16 @@ class FileModel(BaseModel):
     Example:
         ```python
         # Get a file and check its properties
-        file = client.files.retrieve("file_123")
+        file = await client.files.retrieve("file_123")
         
         if file.is_csv() and file.is_ready():
             print(f"Ready CSV file: {file.name} ({file.file_size} bytes)")
             
             # Download to memory
-            content = file.download()
+            content = await file.download()
             
             # Or download to disk
-            file.download(path="./data.csv")
+            await file.download(path="./data.csv")
         ```
     """
 
@@ -138,8 +142,8 @@ class FileModel(BaseModel):
         """When this file was last updated."""
         return self._data["updatedAt"]
 
-    def download(self, *, path: Optional[Union[str, Path]] = None) -> Optional[bytes]:
-        """Download the file content.
+    async def download(self, *, path: Optional[Union[str, Path]] = None) -> Optional[bytes]:
+        """Download the file content (async).
         
         Downloads the file content either to memory or to a local file. This method
         handles the presigned URL workflow automatically and creates parent directories
@@ -161,18 +165,18 @@ class FileModel(BaseModel):
         Example:
             ```python
             # Download to memory
-            content = file.download()
+            content = await file.download()
             print(f"Downloaded {len(content)} bytes")
             
             # Download to disk
-            file.download(path="./downloads/myfile.pdf")
+            await file.download(path="./downloads/myfile.pdf")
             
             # Download with automatic directory creation
-            file.download(path="./new_folder/subfolder/file.csv")
+            await file.download(path="./new_folder/subfolder/file.csv")
             ```
         """
         # Get download URL
-        response = self._client._request(
+        response = await self._client._request(
             method="GET",
             path=f"/files/{self.file_id}/download",
             cast_type=dict,
@@ -184,8 +188,8 @@ class FileModel(BaseModel):
             # Download from presigned URL
             download_url = response["downloadUrl"]
             try:
-                with httpx.Client() as client:
-                    download_response = client.get(download_url)
+                async with httpx.AsyncClient() as client:
+                    download_response = await client.get(download_url)
                     download_response.raise_for_status()
                     file_data = download_response.content
             except httpx.HTTPError as e:
@@ -206,15 +210,14 @@ class FileModel(BaseModel):
             # Create parent directories if they don't exist
             file_path.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(file_path, "wb") as f:
-                f.write(file_data)
+            async with aiofiles.open(file_path, "wb") as f:
+                await f.write(file_data)
             return None
         else:
             return file_data
 
-
-    def delete(self) -> None:
-        """Delete this file permanently.
+    async def delete(self) -> None:
+        """Delete this file permanently (async).
         
         This operation cannot be undone. The file will be removed from both
         the database and cloud storage.
@@ -226,16 +229,15 @@ class FileModel(BaseModel):
         Example:
             ```python
             # Delete a file
-            file.delete()
+            await file.delete()
             # File is now permanently deleted
             ```
         """
-        self._client._request(
+        await self._client._request(
             method="DELETE",
             path=f"/files/{self.file_id}",
             cast_type=dict,
         )
-
 
     def is_ready(self) -> bool:
         """Check if the file is ready for use (processing complete).
@@ -249,7 +251,7 @@ class FileModel(BaseModel):
         Example:
             ```python
             if file.is_ready():
-                content = file.download()
+                content = await file.download()
                 print("File is ready and downloaded!")
             else:
                 print("File is still processing...")
@@ -359,8 +361,9 @@ class FileModel(BaseModel):
         Example:
             ```python
             if file.is_text():
-                content = file.download().decode('utf-8')
-                print(f"Text content: {content[:100]}...")
+                content = await file.download()
+                text_content = content.decode('utf-8')
+                print(f"Text content: {text_content[:100]}...")
             ```
         """
         return self.mime_type.startswith("text/")
@@ -383,9 +386,9 @@ class FileModel(BaseModel):
         """
         return self.mime_type == "text/csv"
 
-    def _refresh(self) -> None:
-        """Refresh this file from the API."""
-        response = self._client._request(
+    async def _refresh(self) -> None:
+        """Refresh this file from the API (async)."""
+        response = await self._client._request(
             method="GET",
             path=f"/files/{self.file_id}",
             cast_type=dict,

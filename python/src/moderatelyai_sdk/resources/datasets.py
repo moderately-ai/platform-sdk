@@ -110,10 +110,18 @@ class Datasets(BaseResource):
         if name is not None:
             query["name"] = name
 
-        return self._get(
+        response = self._get(
             "/datasets",
             options={"query": query},
         )
+        
+        # Convert items to DatasetModel instances
+        if "items" in response:
+            response["items"] = [
+                DatasetModel(item, self._client) for item in response["items"]
+            ]
+        
+        return response
 
     def retrieve(self, dataset_id: str) -> DatasetModel:
         """Retrieve a specific dataset by ID.

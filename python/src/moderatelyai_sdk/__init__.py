@@ -18,9 +18,9 @@ from .exceptions import (
     UnprocessableEntityError,
     ValidationError,
 )
-from .models import DatasetModel, DatasetDataVersionModel, DatasetSchemaVersionModel, SchemaBuilder, FileModel
+from .models import DatasetModel, DatasetDataVersionModel, DatasetSchemaVersionModel, SchemaBuilder, FileModel, FileAsyncModel, UserModel, UserAsyncModel
 from .models.dataset_async import DatasetAsyncModel, DatasetDataVersionAsyncModel
-from .models.dataset_schema_version_async import DatasetSchemaVersionAsyncModel
+from .models.dataset_schema_version_async import DatasetSchemaVersionAsyncModel, AsyncSchemaBuilder
 from .types import APIResponse
 
 __all__ = [
@@ -35,10 +35,14 @@ __all__ = [
     "DatasetSchemaVersionModel",
     "SchemaBuilder",
     "FileModel",
+    "UserModel",
     # Async Models
     "DatasetAsyncModel",
     "DatasetDataVersionAsyncModel",
     "DatasetSchemaVersionAsyncModel",
+    "AsyncSchemaBuilder",
+    "FileAsyncModel",
+    "UserAsyncModel",
     # Exceptions
     "ModeratelyAIError",
     "APIError",

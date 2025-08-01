@@ -2,6 +2,7 @@
 
 from typing import Optional
 
+from ..models.user_async import UserAsyncModel
 from ..types import User, PaginatedResponse
 from ._base import AsyncBaseResource
 
@@ -24,45 +25,46 @@ class AsyncUsers(AsyncBaseResource):
             "order_by": order_by,
             "order_direction": order_direction,
         }
-        return await self._get("/users", options={"query": query})
+        response = await self._get("/users", options={"query": query})
+        
+        # Convert items to UserAsyncModel instances
+        if "items" in response:
+            response["items"] = [
+                UserAsyncModel(item, self._client) for item in response["items"]
+            ]
+        
+        return response
 
-    async def retrieve(self, user_id: str) -> User:
+    async def retrieve(self, user_id: str) -> UserAsyncModel:
         """Retrieve a specific user by ID (async)."""
-        return await self._get(f"/users/{user_id}")
-
-    async def create(
-        self,
-        *,
-        email: str,
-        name: Optional[str] = None,
-        **kwargs,
-    ) -> User:
-        """Create a new user (async)."""
-        body = {
-            "email": email,
-            "teamId": self._client.team_id,  # API expects camelCase
-            **kwargs,
-        }
-        if name is not None:
-            body["name"] = name
-        return await self._post("/users", body=body)
+        data = await self._get(f"/users/{user_id}")
+        return UserAsyncModel(data, self._client)
 
     async def update(
         self,
         user_id: str,
         *,
-        name: Optional[str] = None,
-        email: Optional[str] = None,
+        full_name: str,
         **kwargs,
-    ) -> User:
-        """Update an existing user (async)."""
-        body = {**kwargs}
-        if name is not None:
-            body["name"] = name
-        if email is not None:
-            body["email"] = email
-        return await self._patch(f"/users/{user_id}", body=body)
+    ) -> UserAsyncModel:
+        """Update an existing user (async).
 
-    async def delete(self, user_id: str) -> None:
-        """Delete a user (async)."""
-        await self._delete(f"/users/{user_id}")
+        Args:
+            user_id: The ID of the user to update.
+            full_name: New full name for the user (required).
+            **kwargs: Additional properties to update.
+
+        Returns:
+            The updated user model with rich functionality.
+
+        Raises:
+            NotFoundError: If the user doesn't exist.
+            ValidationError: If the request data is invalid.
+        """
+        body = {
+            "fullName": full_name,
+            **kwargs,
+        }
+
+        data = await self._patch(f"/users/{user_id}", body=body)
+        return UserAsyncModel(data, self._client)
