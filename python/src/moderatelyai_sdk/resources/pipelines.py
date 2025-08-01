@@ -2,6 +2,7 @@
 
 from typing import List, Optional
 
+from ..models.pipeline import PipelineModel
 from ..types import PaginatedResponse, Pipeline
 from ._base import BaseResource
 
@@ -76,21 +77,30 @@ class Pipelines(BaseResource):
         if order_by is not None:
             query["orderBy"] = order_by
 
-        return self._get("/pipelines", options={"query": query})
+        response = self._get("/pipelines", options={"query": query})
+        
+        # Convert pipeline items to fat models
+        if "items" in response:
+            response["items"] = [
+                PipelineModel(item, self._client) for item in response["items"]
+            ]
+        
+        return response
 
-    def retrieve(self, pipeline_id: str) -> Pipeline:
+    def retrieve(self, pipeline_id: str) -> PipelineModel:
         """Retrieve a specific pipeline by ID.
 
         Args:
             pipeline_id: The ID of the pipeline to retrieve.
 
         Returns:
-            The pipeline data.
+            The pipeline model instance.
 
         Raises:
             NotFoundError: If the pipeline doesn't exist.
         """
-        return self._get(f"/pipelines/{pipeline_id}")
+        pipeline_data = self._get(f"/pipelines/{pipeline_id}")
+        return PipelineModel(pipeline_data, self._client)
 
     def create(
         self,
@@ -98,7 +108,7 @@ class Pipelines(BaseResource):
         name: str,
         description: Optional[str] = None,
         **kwargs,
-    ) -> Pipeline:
+    ) -> PipelineModel:
         """Create a new pipeline.
 
         Note: The pipeline will be created in the team specified in the client.
@@ -109,7 +119,7 @@ class Pipelines(BaseResource):
             **kwargs: Additional pipeline properties.
 
         Returns:
-            The created pipeline data.
+            The created pipeline model instance.
 
         Raises:
             ValidationError: If the request data is invalid.
@@ -123,7 +133,8 @@ class Pipelines(BaseResource):
         if description is not None:
             body["description"] = description
 
-        return self._post("/pipelines", body=body)
+        pipeline_data = self._post("/pipelines", body=body)
+        return PipelineModel(pipeline_data, self._client)
 
     def update(
         self,
@@ -132,7 +143,7 @@ class Pipelines(BaseResource):
         name: Optional[str] = None,
         description: Optional[str] = None,
         **kwargs,
-    ) -> Pipeline:
+    ) -> PipelineModel:
         """Update an existing pipeline.
 
         Args:
@@ -142,7 +153,7 @@ class Pipelines(BaseResource):
             **kwargs: Additional properties to update.
 
         Returns:
-            The updated pipeline data.
+            The updated pipeline model instance.
 
         Raises:
             NotFoundError: If the pipeline doesn't exist.
@@ -155,7 +166,8 @@ class Pipelines(BaseResource):
         if description is not None:
             body["description"] = description
 
-        return self._patch(f"/pipelines/{pipeline_id}", body=body)
+        pipeline_data = self._patch(f"/pipelines/{pipeline_id}", body=body)
+        return PipelineModel(pipeline_data, self._client)
 
     def delete(self, pipeline_id: str) -> None:
         """Delete a pipeline.

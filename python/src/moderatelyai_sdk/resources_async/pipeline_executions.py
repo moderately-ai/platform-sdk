@@ -249,13 +249,46 @@ class AsyncPipelineExecutions(AsyncBaseResource):
     async def get_output(self, pipeline_execution_id: str) -> Any:
         """Get the output of a specific pipeline execution (async).
 
+        Handles both inline and S3-stored outputs automatically:
+        - Inline: Small outputs stored directly in the API response
+        - S3: Large outputs stored in S3 with automatic download via presigned URL
+
         Args:
             pipeline_execution_id: The ID of the execution.
 
         Returns:
-            The execution output data.
+            The execution output data or None if not available.
 
         Raises:
-            NotFoundError: If the execution doesn't exist.
+            NotFoundError: If the execution doesn't exist or has no output.
         """
-        return await self._get(f"/pipeline-executions/{pipeline_execution_id}/output")
+        import json
+        import urllib.request
+        
+        result = await self._get(f"/pipeline-executions/{pipeline_execution_id}/output")
+        
+        if result.get('type') == 'inline':
+            # Output is stored inline in the response
+            return result.get('data', {})
+        elif result.get('type') == 's3':
+            # Output is in S3, need to download from presigned URL
+            download_url = result.get('downloadUrl')
+            if not download_url:
+                return None
+                
+            # Download from presigned S3 URL
+            request = urllib.request.Request(download_url)
+            with urllib.request.urlopen(request) as response:
+                content = response.read()
+                
+                # Check if content is compressed
+                if result.get('metadata', {}).get('compressionType') == 'gzip':
+                    import gzip
+                    content = gzip.decompress(content)
+                
+                # Parse JSON output
+                output_data = json.loads(content.decode('utf-8'))
+                return output_data
+        else:
+            # Unknown output type or no output
+            return None
