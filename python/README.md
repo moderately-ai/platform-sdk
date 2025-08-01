@@ -75,6 +75,66 @@ execution = client.agent_executions.create(
 )
 ```
 
+### Working with Pipelines
+
+```python
+# Create a pipeline
+pipeline = client.pipelines.create(
+    name="Document Processing Pipeline",
+    description="Processes legal documents and extracts key information"
+)
+
+# Create a configuration version with workflow logic
+config_version = client.pipeline_configuration_versions.create(
+    pipeline_id=pipeline["pipelineId"],
+    configuration={
+        "id": "doc-processor",
+        "name": "Document Processor",
+        "version": "1.0.0",
+        "blocks": {
+            "input": {
+                "id": "input",
+                "type": "input",
+                "config": {"json_schema": {"type": "object"}}
+            },
+            "llm": {
+                "id": "llm",
+                "type": "llm", 
+                "config": {
+                    "provider": "anthropic",
+                    "model": "small",
+                    "temperature": 0.2
+                }
+            },
+            "output": {
+                "id": "output",
+                "type": "output",
+                "config": {"name": "results"}
+            }
+        }
+    }
+)
+
+# Execute the pipeline
+execution = client.pipeline_executions.create(
+    pipeline_configuration_version_id=config_version["pipelineConfigurationVersionId"],
+    pipeline_input={"documents": ["doc1.pdf", "doc2.pdf"]},
+    pipeline_input_summary="Process 2 legal documents"
+)
+
+# Monitor execution status
+status = client.pipeline_executions.retrieve(execution["pipelineExecutionId"])
+print(f"Execution status: {status['status']}")
+
+# Get execution results when completed
+if status["status"] == "completed":
+    output = client.pipeline_executions.get_output(execution["pipelineExecutionId"]) 
+    print(f"Results: {output}")
+
+# List all pipelines in your team
+pipelines = client.pipelines.list()
+```
+
 ### Using Context Manager
 
 ```python
@@ -154,7 +214,9 @@ The main client class for interacting with the Moderately AI API.
 - `client.agents`: Manage AI agents
 - `client.agent_executions`: Create and monitor agent executions
 - `client.datasets`: Manage datasets with rich functionality (upload, download, schema management)
-- `client.pipelines`: Manage data pipelines
+- `client.pipelines`: Manage pipeline metadata (create, update, delete pipelines)
+- `client.pipeline_configuration_versions`: Manage pipeline workflow configurations and logic
+- `client.pipeline_executions`: Execute pipelines and monitor execution status
 - `client.files`: Upload and manage files
 
 ### Exceptions

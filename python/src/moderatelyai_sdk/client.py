@@ -6,7 +6,17 @@ from typing import Any, Dict, Optional, Union
 import httpx
 
 from ._base_client import BaseClient, RetryConfig
-from .resources import AgentExecutions, Agents, Datasets, Files, Pipelines, Teams, Users
+from .resources import (
+    AgentExecutions,
+    Agents,
+    Datasets,
+    Files,
+    PipelineConfigurationVersions,
+    PipelineExecutions,
+    Pipelines,
+    Teams,
+    Users,
+)
 from .types import HTTPMethod
 
 
@@ -117,6 +127,8 @@ class ModeratelyAI(BaseClient):
         self.agent_executions = AgentExecutions(self)
         self.datasets = Datasets(self)
         self.pipelines = Pipelines(self)
+        self.pipeline_configuration_versions = PipelineConfigurationVersions(self)
+        self.pipeline_executions = PipelineExecutions(self)
         self.files = Files(self)
 
     def _make_request(

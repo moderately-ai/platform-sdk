@@ -1,37 +1,95 @@
 """Async pipelines resource for the Moderately AI API."""
 
-from typing import Any, Dict, Optional
+from typing import List, Optional
 
-from ..types import Pipeline, PaginatedResponse
+from ..types import PaginatedResponse, Pipeline
 from ._base import AsyncBaseResource
 
 
 class AsyncPipelines(AsyncBaseResource):
-    """Manage pipelines in your teams (async version)."""
+    """Manage pipelines in your teams (async version).
+
+    Pipelines are basic metadata containers with name, description, and team ownership.
+    The actual pipeline logic is stored in PipelineConfigurationVersions.
+    Execution instances are managed through PipelineExecutions.
+
+    Examples:
+        ```python
+        # List all pipelines
+        pipelines = await client.pipelines.list()
+
+        # Get a specific pipeline
+        pipeline = await client.pipelines.retrieve("pipeline_123")
+
+        # Create a new pipeline
+        pipeline = await client.pipelines.create(
+            name="Document Analysis Pipeline",
+            description="Processes legal documents"
+        )
+
+        # Update a pipeline
+        pipeline = await client.pipelines.update(
+            "pipeline_123",
+            name="Updated Pipeline Name"
+        )
+
+        # Delete a pipeline
+        await client.pipelines.delete("pipeline_123")
+        ```
+    """
 
     async def list(
         self,
         *,
-        status: Optional[str] = None,
+        pipeline_ids: Optional[List[str]] = None,
+        name_like: Optional[str] = None,
         page: int = 1,
         page_size: int = 10,
-        order_by: str = "created_at",
-        order_direction: str = "desc",
+        order_by: Optional[str] = None,
+        order_direction: str = "asc",
     ) -> PaginatedResponse:
-        """List all pipelines with pagination (async)."""
+        """List all pipelines with pagination (async).
+
+        Note: Results are automatically filtered to the team specified in the client.
+
+        Args:
+            pipeline_ids: Filter by specific pipeline IDs.
+            name_like: Filter pipelines by name (case-insensitive partial match).
+            page: Page number (1-based). Defaults to 1.
+            page_size: Number of items per page (1-1000). Defaults to 10.
+            order_by: Field to sort by ("name", "createdAt", "updatedAt").
+            order_direction: Sort direction ("asc" or "desc"). Defaults to "asc".
+
+        Returns:
+            Paginated list of pipelines for the client's team.
+        """
         query = {
             "page": page,
-            "page_size": page_size,
-            "order_by": order_by,
-            "order_direction": order_direction,
+            "pageSize": page_size,
+            "orderDirection": order_direction,
         }
-        if status is not None:
-            query["status"] = status
+
+        if pipeline_ids is not None:
+            query["pipelineIds"] = ",".join(pipeline_ids)
+        if name_like is not None:
+            query["nameLike"] = name_like
+        if order_by is not None:
+            query["orderBy"] = order_by
 
         return await self._get("/pipelines", options={"query": query})
 
     async def retrieve(self, pipeline_id: str) -> Pipeline:
-        """Retrieve a specific pipeline by ID (async)."""
+        """Retrieve a specific pipeline by ID (async).
+
+        Args:
+            pipeline_id: The ID of the pipeline to retrieve.
+
+        Returns:
+            The pipeline data.
+
+        Raises:
+            NotFoundError: If the pipeline doesn't exist.
+        """
         return await self._get(f"/pipelines/{pipeline_id}")
 
     async def create(
@@ -39,19 +97,31 @@ class AsyncPipelines(AsyncBaseResource):
         *,
         name: str,
         description: Optional[str] = None,
-        config: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> Pipeline:
-        """Create a new pipeline (async)."""
+        """Create a new pipeline (async).
+
+        Note: The pipeline will be created in the team specified in the client.
+
+        Args:
+            name: The pipeline's name (1-255 characters). Must be unique within the team.
+            description: The pipeline's description (max 1000 characters).
+            **kwargs: Additional pipeline properties.
+
+        Returns:
+            The created pipeline data.
+
+        Raises:
+            ValidationError: If the request data is invalid.
+            ConflictError: If a pipeline with the same name already exists in the team.
+        """
         body = {
+            "teamId": self._client.team_id,
             "name": name,
-            "teamId": self._client.team_id,  # API expects camelCase
             **kwargs,
         }
         if description is not None:
             body["description"] = description
-        if config is not None:
-            body["config"] = config
 
         return await self._post("/pipelines", body=body)
 
@@ -61,31 +131,39 @@ class AsyncPipelines(AsyncBaseResource):
         *,
         name: Optional[str] = None,
         description: Optional[str] = None,
-        config: Optional[Dict[str, Any]] = None,
-        status: Optional[str] = None,
         **kwargs,
     ) -> Pipeline:
-        """Update an existing pipeline (async)."""
+        """Update an existing pipeline (async).
+
+        Args:
+            pipeline_id: The ID of the pipeline to update.
+            name: New pipeline name (1-255 characters). Must be unique within the team.
+            description: New pipeline description (max 1000 characters).
+            **kwargs: Additional properties to update.
+
+        Returns:
+            The updated pipeline data.
+
+        Raises:
+            NotFoundError: If the pipeline doesn't exist.
+            ValidationError: If the request data is invalid.
+            ConflictError: If a pipeline with the same name already exists in the team.
+        """
         body = {**kwargs}
         if name is not None:
             body["name"] = name
         if description is not None:
             body["description"] = description
-        if config is not None:
-            body["config"] = config
-        if status is not None:
-            body["status"] = status
 
         return await self._patch(f"/pipelines/{pipeline_id}", body=body)
 
     async def delete(self, pipeline_id: str) -> None:
-        """Delete a pipeline (async)."""
+        """Delete a pipeline (async).
+
+        Args:
+            pipeline_id: The ID of the pipeline to delete.
+
+        Raises:
+            NotFoundError: If the pipeline doesn't exist.
+        """
         await self._delete(f"/pipelines/{pipeline_id}")
-
-    async def run(self, pipeline_id: str, *, input_data: Optional[Dict[str, Any]] = None) -> Pipeline:
-        """Run a pipeline (async)."""
-        body = {}
-        if input_data is not None:
-            body["input_data"] = input_data
-
-        return await self._post(f"/pipelines/{pipeline_id}/run", body=body)

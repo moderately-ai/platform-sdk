@@ -5,6 +5,8 @@ from .agents import AsyncAgents
 from .dataset_schema_versions import AsyncDatasetSchemaVersions
 from .datasets import AsyncDatasets
 from .files import AsyncFiles
+from .pipeline_configuration_versions import AsyncPipelineConfigurationVersions
+from .pipeline_executions import AsyncPipelineExecutions
 from .pipelines import AsyncPipelines
 from .teams import AsyncTeams
 from .users import AsyncUsers
@@ -18,4 +20,6 @@ __all__ = [
     "AsyncDatasetSchemaVersions",
     "AsyncFiles",
     "AsyncPipelines",
+    "AsyncPipelineConfigurationVersions",
+    "AsyncPipelineExecutions",
 ]

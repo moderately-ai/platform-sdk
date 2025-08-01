@@ -11,6 +11,8 @@ from .resources_async import (
     AsyncAgents,
     AsyncDatasets,
     AsyncFiles,
+    AsyncPipelineConfigurationVersions,
+    AsyncPipelineExecutions,
     AsyncPipelines,
     AsyncTeams,
     AsyncUsers,
@@ -119,6 +121,8 @@ class AsyncModeratelyAI(AsyncBaseClient):
         self.agent_executions = AsyncAgentExecutions(self)
         self.datasets = AsyncDatasets(self)
         self.pipelines = AsyncPipelines(self)
+        self.pipeline_configuration_versions = AsyncPipelineConfigurationVersions(self)
+        self.pipeline_executions = AsyncPipelineExecutions(self)
         self.files = AsyncFiles(self)
 
     async def _make_request(

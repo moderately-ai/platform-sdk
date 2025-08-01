@@ -136,18 +136,53 @@ class Dataset(TypedDict, total=False):
 
 
 class Pipeline(TypedDict, total=False):
-    """Pipeline resource type."""
+    """Pipeline resource type - basic pipeline metadata."""
 
     pipelineId: str
     teamId: str
     name: str
     description: Optional[str]
-    createdAt: str
-    updatedAt: str
+    createdAt: Optional[str]
+    updatedAt: Optional[str]
     lastRunAt: Optional[str]
     totalRuns: float
     successfulRuns: float
     successRate: float
+
+
+class PipelineConfigurationVersion(TypedDict, total=False):
+    """Pipeline configuration version resource type - contains the actual pipeline logic."""
+
+    pipelineConfigurationVersionId: str
+    pipelineId: str
+    configuration: Dict[str, Any]
+    createdAt: Optional[str]
+    updatedAt: Optional[str]
+    status: Optional[str]
+    version: Optional[str]
+
+
+class PipelineExecution(TypedDict, total=False):
+    """Pipeline execution resource type - runtime execution instances."""
+
+    pipelineExecutionId: str
+    pipelineConfigurationVersionId: str
+    pipelineInput: Dict[str, Any]
+    pipelineInputSummary: str
+    pipelineOutput: Optional[Dict[str, Any]]
+    pipelineOutputSummary: Optional[str]
+    status: str  # pending, running, completed, failed, cancelled, paused
+    progressData: Dict[str, Any]
+    pipelineOutputFileUri: Optional[str]
+    currentStep: Optional[int]
+    totalSteps: Optional[int]
+    createdAt: Optional[str]
+    updatedAt: Optional[str]
+    startedAt: Optional[str]
+    completedAt: Optional[str]
+    failedAt: Optional[str]
+    cancelledAt: Optional[str]
+    pausedAt: Optional[str]
 
 
 class File(TypedDict, total=False):
