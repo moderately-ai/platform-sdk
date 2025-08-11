@@ -21,6 +21,8 @@ pip install moderatelyai-sdk
 
 ## Quick Start
 
+### Synchronous Client
+
 ```python
 import moderatelyai_sdk
 
@@ -37,6 +39,23 @@ client = moderatelyai_sdk.ModeratelyAI(
 users = client.users.list()
 dataset = client.datasets.create(name="My Dataset")
 agents = client.agents.list()
+```
+
+### Asynchronous Client
+
+```python
+import asyncio
+import moderatelyai_sdk
+
+async def main():
+    # Initialize async client
+    async with moderatelyai_sdk.AsyncModeratelyAI() as client:
+        # Same operations, just with await
+        users = await client.users.list()
+        dataset = await client.datasets.create(name="My Dataset")
+        agents = await client.agents.list()
+
+asyncio.run(main())
 ```
 
 ## Usage
@@ -145,6 +164,110 @@ with ModeratelyAI(team_id="your-team-id", api_key="your-api-key") as client:
     print(f"Found {len(users)} users")
 ```
 
+### Async Support
+
+The SDK provides full async support with `AsyncModeratelyAI`. All methods have identical interfaces - just add `await`:
+
+```python
+import asyncio
+from moderatelyai_sdk import AsyncModeratelyAI
+
+async def main():
+    # Use async context manager (recommended)
+    async with AsyncModeratelyAI() as client:  # reads environment variables
+        # All the same operations, just with await
+        users = await client.users.list()
+        dataset = await client.datasets.create(name="Async Dataset")
+        agents = await client.agents.list()
+        
+        # File operations work the same way
+        file = await client.files.upload(
+            file="data.csv",
+            name="Training Data"
+        )
+        
+        if file.is_ready():
+            content = await file.download()
+            await file.delete()
+
+asyncio.run(main())
+```
+
+### File Operations
+
+The SDK provides rich file upload, download, and management capabilities with automatic presigned URL handling:
+
+```python
+from moderatelyai_sdk import ModeratelyAI
+
+client = ModeratelyAI()
+
+# Upload a file (multiple input types supported)
+file = client.files.upload(
+    file="/path/to/document.pdf",      # File path
+    name="Important Document",
+    metadata={"category": "legal", "priority": "high"}
+)
+
+# Upload from bytes or file-like objects also supported
+with open("data.csv", "rb") as f:
+    file = client.files.upload(
+        file=f.read(),                 # Raw bytes
+        name="Dataset"
+    )
+
+# Rich file model with convenience methods
+print(f"File: {file.name} ({file.file_size} bytes)")
+print(f"Type: {file.mime_type}")
+print(f"Ready: {file.is_ready()}")
+print(f"Is CSV: {file.is_csv()}")
+print(f"Is Document: {file.is_document()}")
+
+# Download files
+content = file.download()                    # Download to memory
+file.download(path="./local_copy.pdf")       # Download to disk
+
+# List files with filtering
+files_response = client.files.list(
+    mime_type="application/pdf",
+    page_size=20,
+    order_direction="desc"
+)
+
+files = files_response["items"]  # List of FileModel instances
+for file in files:
+    if file.is_ready():
+        print(f"Ready: {file.name} ({file.file_size} bytes)")
+
+# Delete files
+file.delete()  # Permanent deletion
+```
+
+#### Async File Operations
+
+File operations work identically in async mode:
+
+```python
+import asyncio
+from moderatelyai_sdk import AsyncModeratelyAI
+
+async def file_operations():
+    async with AsyncModeratelyAI() as client:
+        # Same interface, just add await
+        file = await client.files.upload(
+            file="document.pdf",
+            name="Async Upload"
+        )
+        
+        # All the same rich methods available
+        if file.is_ready() and file.is_document():
+            content = await file.download()      # Download to memory  
+            await file.download(path="./copy.pdf")  # Download to disk
+            await file.delete()                  # Clean up
+
+asyncio.run(file_operations())
+```
+
 ### Error Handling
 
 ```python
@@ -206,6 +329,10 @@ pdm run mypy src/
 ### ModeratelyAI
 
 The main client class for interacting with the Moderately AI API.
+
+### AsyncModeratelyAI  
+
+The async client class with identical interface to `ModeratelyAI`. All methods are async and return awaitable objects.
 
 #### Resource Groups
 

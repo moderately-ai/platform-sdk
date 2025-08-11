@@ -366,11 +366,11 @@ class Files(BaseResource):
 
         # Parse the response to get file content
         file_data: bytes
-        if isinstance(response, dict) and "download_url" in response:
-            # If API returns a download URL, we'd need to fetch it
+        if isinstance(response, dict) and "downloadUrl" in response:
+            # If API returns a download URL, we need to fetch it
             try:
                 with httpx.Client() as client:
-                    download_response = client.get(response["download_url"])
+                    download_response = client.get(response["downloadUrl"])
                     download_response.raise_for_status()
                     file_data = download_response.content
             except httpx.HTTPError as e:

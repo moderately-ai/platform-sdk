@@ -119,78 +119,137 @@ class AsyncFiles(AsyncBaseResource):
 
     async def upload(
         self,
+        file: Union[str, Path, bytes, Any],
         *,
-        file_path: Optional[Union[str, Path]] = None,
-        file_data: Optional[bytes] = None,
         name: Optional[str] = None,
-        original_name: Optional[str] = None,
-        dataset_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> FileAsyncModel:
-        """Upload a new file.
+        """Upload a file using secure presigned URL workflow (async version).
 
-        Note: The file will be uploaded to the team specified in the client.
+        Accepts files in multiple convenient formats and handles all the complexity
+        of secure upload automatically, including SHA256 hashing, MIME type detection,
+        and presigned URL generation.
+
+        Supported file inputs:
+        - File paths (str or Path objects)
+        - Raw bytes data
+        - File-like objects with .read() method (buffers, streams)
 
         Args:
-            file_path: Path to the file to upload (either this or file_data is required).
-            file_data: Raw file data to upload (either this or file_path is required).
-            name: Display name for the file. If not provided, will use filename.
-            original_name: Original filename. If not provided, will use filename from path.
-            dataset_id: Optional dataset ID to associate the file with.
-            metadata: Additional metadata for the file.
+            file: The file to upload in any supported format
+            name: Custom display name for the file. If not provided, uses the
+                 filename from path or defaults to a generic name.
+            metadata: Additional metadata dictionary to store with the file.
             **kwargs: Additional file properties.
 
         Returns:
-            The uploaded file model with rich functionality.
+            FileAsyncModel instance representing the uploaded file with rich async operations.
 
         Raises:
-            ValueError: If neither file_path nor file_data is provided.
-            ValidationError: If the file is invalid.
+            ValueError: If file is invalid, not found, or unsupported format.
+            APIError: If upload process fails at any step.
             NotFoundError: If the dataset doesn't exist.
         """
-        if file_path is None and file_data is None:
-            raise ValueError("Either file_path or file_data must be provided")
 
-        # Prepare file data
-        if file_path is not None:
-            file_path = Path(file_path)
+        # Step 1: Process the file input to get bytes and metadata
+        file_data: bytes
+        file_name: str
+
+        if isinstance(file, (str, Path)):
+            # Handle file path
+            file_path = Path(file)
             if not file_path.exists():
                 raise ValueError(f"File not found: {file_path}")
 
-            with open(file_path, "rb") as f:
-                file_data = f.read()
+            async with aiofiles.open(file_path, "rb") as f:
+                file_data = await f.read()
 
-            if original_name is None:
-                original_name = file_path.name
-            if name is None:
-                name = file_path.name
+            # If custom name provided, preserve the original extension
+            if name:
+                file_extension = file_path.suffix
+                if not name.endswith(file_extension):
+                    file_name = f"{name}{file_extension}"
+                else:
+                    file_name = name
+            else:
+                file_name = file_path.name
 
-        body = {
-            "team_id": self._client.team_id,  # Use client's team_id
-            **kwargs,
+        elif isinstance(file, bytes):
+            # Handle raw bytes
+            file_data = file
+            file_name = name or "uploaded_file"
+
+        elif hasattr(file, "read"):
+            # Handle file-like object (buffer)
+            file_data = file.read()
+            if isinstance(file_data, str):
+                file_data = file_data.encode("utf-8")
+
+            # Try to get filename from buffer object
+            buffer_name = getattr(file, "name", None)
+            if buffer_name and not name:
+                file_name = Path(buffer_name).name
+            else:
+                file_name = name or "uploaded_file"
+
+        else:
+            raise ValueError(
+                f"Unsupported file type: {type(file)}. Must be str, Path, bytes, or file-like object."
+            )
+
+        # Step 2: Calculate file properties
+        import hashlib
+        import mimetypes
+        
+        file_size = len(file_data)
+        file_hash = hashlib.sha256(file_data).hexdigest()
+
+        # Auto-detect MIME type
+        mime_type, _ = mimetypes.guess_type(file_name)
+        if not mime_type:
+            mime_type = "application/octet-stream"
+
+        # Step 3: Get presigned upload URL
+        upload_request = {
+            "fileName": file_name,
+            "fileSize": file_size,
+            "fileHash": file_hash,
+            "mimeType": mime_type,
+            "teamId": self._client.team_id,
         }
 
-        if name is not None:
-            body["name"] = name
-        if original_name is not None:
-            body["original_name"] = original_name
-        if dataset_id is not None:
-            body["dataset_id"] = dataset_id
-        if metadata is not None:
-            body["metadata"] = metadata
+        if metadata:
+            upload_request["metadata"] = metadata
 
-        # Note: In a real implementation, this would likely use multipart/form-data
-        # For now, we'll encode the file data (this might need API-specific handling)
-        if file_data is not None:
-            # Convert bytes to base64 or handle according to API requirements
-            import base64
+        # Get the presigned URL
+        upload_response = await self._post("/files/upload-url", body=upload_request)
 
-            body["file_data"] = base64.b64encode(file_data).decode("utf-8")
-            body["file_size"] = len(file_data)
+        file_info = upload_response["file"]
+        presigned_url = upload_response["uploadUrl"]
+        file_id = file_info["fileId"]
 
-        data = await self._post("/files", body=body)
-        return FileAsyncModel(data, self._client)
+        # Step 4: Upload file to presigned URL
+        try:
+            async with httpx.AsyncClient() as client:
+                upload_result = await client.put(
+                    presigned_url,
+                    content=file_data,
+                    headers={"Content-Type": mime_type},
+                )
+                upload_result.raise_for_status()
+        except Exception as e:
+            raise APIError(f"Failed to upload file to presigned URL: {e}") from e
+
+        # Step 5: Mark upload as complete
+        try:
+            complete_response = await self._post(
+                f"/files/{file_id}/complete",
+                body={"fileSize": file_size, "fileHash": file_hash},
+            )
+            return FileAsyncModel(complete_response, self._client)
+        except Exception as e:
+            raise APIError(f"Failed to complete file upload: {e}") from e
 
     async def update(
         self,
@@ -259,12 +318,12 @@ class AsyncFiles(AsyncBaseResource):
 
         # In a real implementation, this might return binary data directly
         # or a download URL that needs to be fetched separately
-        if isinstance(response, dict) and "download_url" in response:
+        if isinstance(response, dict) and "downloadUrl" in response:
             # If API returns a download URL, we'd need to fetch it
             import httpx
 
             async with httpx.AsyncClient() as client:
-                download_response = await client.get(response["download_url"])
+                download_response = await client.get(response["downloadUrl"])
                 return download_response.content
         elif isinstance(response, dict) and "content" in response:
             # If API returns base64 encoded content

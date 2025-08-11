@@ -131,10 +131,21 @@ class AsyncBaseClient:
             error.retry_after = retry_after
             raise error
 
+        # Handle successful responses
+        if response.status_code == 204:  # No Content
+            return None
+            
+        # Handle empty responses (like DELETE operations)
+        if cast_type is type(None):
+            return None
+            
         # Parse JSON response
         try:
             data = response.json()
         except json.JSONDecodeError as e:
+            # If we expect no content and got empty response, that's fine
+            if cast_type is type(None):
+                return None
             raise APIError(f"Invalid JSON response: {e}") from e
 
         # Validate response structure if needed

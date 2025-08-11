@@ -233,7 +233,7 @@ class FileModel(BaseModel):
         self._client._request(
             method="DELETE",
             path=f"/files/{self.file_id}",
-            cast_type=dict,
+            cast_type=type(None),
         )
 
 
