@@ -8,14 +8,14 @@ if TYPE_CHECKING:
 
 class BaseAsyncModel:
     """Base class for all SDK async model objects.
-    
+
     Provides common functionality for models that wrap API data and provide
     rich async methods for interacting with the API.
     """
 
     def __init__(self, data: Dict[str, Any], client: "AsyncBaseClient") -> None:
         """Initialize the async model with API data and client reference.
-        
+
         Args:
             data: Raw API response data
             client: Async client instance for making API calls
@@ -25,7 +25,7 @@ class BaseAsyncModel:
 
     async def _refresh(self) -> None:
         """Refresh the model data by fetching from the API.
-        
+
         This method should be overridden by subclasses to implement
         the specific refresh logic for each model type.
         """
@@ -33,7 +33,7 @@ class BaseAsyncModel:
 
     def to_dict(self) -> Dict[str, Any]:
         """Return the raw API data as a dictionary.
-        
+
         Returns:
             The underlying API data dictionary
         """

@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from ..types import Team, PaginatedResponse
+from ..types import PaginatedResponse, Team
 from ._base import AsyncBaseResource
 
 

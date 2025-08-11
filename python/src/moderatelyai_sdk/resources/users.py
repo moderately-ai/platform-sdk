@@ -1,9 +1,8 @@
 """Users resource for the Moderately AI API."""
 
-from typing import Optional
 
 from ..models.user import UserModel
-from ..types import PaginatedResponse, User
+from ..types import PaginatedResponse
 from ._base import BaseResource
 
 
@@ -20,15 +19,15 @@ class Users(BaseResource):
 
         # Get a specific user with rich functionality
         user = client.users.retrieve("user_123")
-        
+
         # Use rich user operations
         print(f"User: {user.display_name()} ({user.full_name})")
         print(f"Nickname: {user.nickname}")
         print(f"Created: {user.formatted_created_at()}")
-        
+
         # Update user profile
         user = user.update_profile(full_name="Jane Smith")
-        
+
         # Or update via resource
         user = client.users.update("user_123", full_name="John Doe")
         ```
@@ -64,13 +63,13 @@ class Users(BaseResource):
                 }
             },
         )
-        
+
         # Convert items to UserModel instances
         if "items" in response:
             response["items"] = [
                 UserModel(item, self._client) for item in response["items"]
             ]
-        
+
         return response
 
     def retrieve(self, user_id: str) -> UserModel:

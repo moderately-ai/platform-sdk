@@ -10,17 +10,16 @@ import httpx
 
 from ..exceptions import APIError
 from ..models.file import FileModel
-from ..types import File, PaginatedResponse
 from ._base import BaseResource
 
 
 class Files(BaseResource):
     """Manage files in your team.
-    
+
     The Files resource provides methods for uploading, downloading, listing, and
     managing files. All methods return FileModel instances which provide rich
     functionality for file operations.
-    
+
     Key Features:
     - Upload files with automatic MIME type detection
     - Download files to memory or disk
@@ -35,23 +34,23 @@ class Files(BaseResource):
             file="/path/to/data.csv",
             name="Dataset"
         )
-        
+
         # Use rich FileModel methods
         if file.is_ready() and file.is_csv():
             content = file.download()  # Download to memory
             file.download(path="./local_copy.csv")  # Download to disk
-        
+
         # List files with filtering
         files_response = client.files.list(
             mime_type="text/csv",
             page_size=20
         )
         csv_files = files_response["items"]  # List of FileModel instances
-        
+
         # Get a specific file
         file = client.files.retrieve("file_123")
         print(f"File: {file.name} ({file.file_size} bytes)")
-        
+
         # Delete files
         file.delete()  # Using FileModel method
         # OR
@@ -86,7 +85,7 @@ class Files(BaseResource):
 
         Returns:
             Dictionary with "items" (list of FileModel instances) and "pagination" info.
-            
+
         Example:
             ```python
             # List recent CSV files
@@ -95,7 +94,7 @@ class Files(BaseResource):
                 page_size=20,
                 order_direction="desc"
             )
-            
+
             csv_files = response["items"]  # List of FileModel instances
             for file in csv_files:
                 if file.is_ready():
@@ -120,13 +119,13 @@ class Files(BaseResource):
             "/files",
             options={"query": query},
         )
-        
+
         # Convert items to FileModel instances
         if "items" in response:
             response["items"] = [
                 FileModel(item, self._client) for item in response["items"]
             ]
-        
+
         return response
 
     def retrieve(self, file_id: str) -> FileModel:
@@ -140,12 +139,12 @@ class Files(BaseResource):
 
         Raises:
             NotFoundError: If the file doesn't exist.
-            
+
         Example:
             ```python
             file = client.files.retrieve("file_123")
             print(f"File: {file.name} ({file.mime_type})")
-            
+
             if file.is_ready():
                 content = file.download()
             ```
@@ -190,26 +189,26 @@ class Files(BaseResource):
             ```python
             # Upload from file path
             file = client.files.upload("/path/to/document.pdf")
-            
+
             # Upload with custom name and metadata
             file = client.files.upload(
                 file="data.csv",
                 name="Customer Data",
                 metadata={"category": "sales", "quarter": "Q1"}
             )
-            
+
             # Upload raw bytes
             with open("image.jpg", "rb") as f:
                 file = client.files.upload(
                     file=f.read(),
                     name="Profile Picture"
                 )
-            
+
             # Upload from file-like object
             import io
             buffer = io.BytesIO(b"Hello, World!")
             file = client.files.upload(buffer, name="greeting.txt")
-            
+
             # Use the returned FileModel
             if file.is_ready():
                 print(f"Uploaded: {file.name} ({file.file_size} bytes)")
@@ -317,7 +316,7 @@ class Files(BaseResource):
         """Delete a file permanently.
 
         This operation cannot be undone. The file will be removed from both
-        the database and cloud storage. Consider using FileModel.delete() 
+        the database and cloud storage. Consider using FileModel.delete()
         for better ergonomics.
 
         Args:
@@ -326,12 +325,12 @@ class Files(BaseResource):
         Raises:
             NotFoundError: If the file doesn't exist.
             APIError: If deletion fails.
-            
+
         Example:
             ```python
             # Delete using resource method
             client.files.delete("file_123")
-            
+
             # OR delete using FileModel (recommended)
             file = client.files.retrieve("file_123")
             file.delete()
@@ -343,7 +342,7 @@ class Files(BaseResource):
         self, file_id: str, *, path: Optional[Union[str, Path]] = None
     ) -> Optional[bytes]:
         """Download file content.
-        
+
         Note: Consider using FileModel.download() instead for better ergonomics:
             file = client.files.retrieve(file_id)
             content = file.download(path=path)

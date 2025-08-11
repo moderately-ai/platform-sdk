@@ -25,7 +25,7 @@ class PipelineModel(BaseModel):
 
         # Execute and block until completion
         execution = pipeline.execute(
-            configuration_version_id="version_123", 
+            configuration_version_id="version_123",
             pipeline_input={"documents": ["doc1.pdf"]},
             pipeline_input_summary="Process document",
             block=True,
@@ -147,7 +147,7 @@ class PipelineModel(BaseModel):
             The created configuration version model.
         """
         from .pipeline_configuration_version import PipelineConfigurationVersionModel
-        
+
         data = self._client._make_request(
             method="POST",
             path="/pipeline-configuration-versions",
@@ -167,14 +167,14 @@ class PipelineModel(BaseModel):
             List of configuration version models.
         """
         from .pipeline_configuration_version import PipelineConfigurationVersionModel
-        
+
         response = self._client._make_request(
             method="GET",
             path="/pipeline-configuration-versions",
             cast_type=dict,
             options={"query": {"pipelineIds": self.pipeline_id}}
         )
-        
+
         return [
             PipelineConfigurationVersionModel(item, self._client)
             for item in response.get("items", [])
@@ -200,7 +200,7 @@ class PipelineModel(BaseModel):
             List of execution models.
         """
         from .pipeline_execution import PipelineExecutionModel
-        
+
         query = {
             "pipelineIds": self.pipeline_id,
             "page": page,
@@ -217,7 +217,7 @@ class PipelineModel(BaseModel):
             cast_type=dict,
             options={"query": query}
         )
-        
+
         return [
             PipelineExecutionModel(item, self._client)
             for item in response.get("items", [])
@@ -282,7 +282,7 @@ class PipelineModel(BaseModel):
             execution = pipeline.execute(
                 configuration_version_id="version_123",
                 pipeline_input={"documents": ["doc1.pdf"]},
-                pipeline_input_summary="Process document", 
+                pipeline_input_summary="Process document",
                 block=True,
                 timeout=600,  # 10 minutes
                 poll_interval=3.0
@@ -293,7 +293,7 @@ class PipelineModel(BaseModel):
             ```
         """
         from .pipeline_execution import PipelineExecutionModel
-        
+
         # Create the execution
         execution_data = self._client._make_request(
             method="POST",
@@ -306,13 +306,13 @@ class PipelineModel(BaseModel):
                 **kwargs
             }
         )
-        
+
         execution = PipelineExecutionModel(execution_data, self._client)
-        
+
         # If not blocking, return immediately
         if not block:
             return execution
-        
+
         # Block and poll until completion using the execution model's wait method
         return execution.wait_for_completion(
             timeout=timeout,

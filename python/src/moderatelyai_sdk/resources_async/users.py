@@ -1,9 +1,8 @@
 """Async users resource for the Moderately AI API."""
 
-from typing import Optional
 
 from ..models.user_async import UserAsyncModel
-from ..types import User, PaginatedResponse
+from ..types import PaginatedResponse
 from ._base import AsyncBaseResource
 
 
@@ -26,13 +25,13 @@ class AsyncUsers(AsyncBaseResource):
             "order_direction": order_direction,
         }
         response = await self._get("/users", options={"query": query})
-        
+
         # Convert items to UserAsyncModel instances
         if "items" in response:
             response["items"] = [
                 UserAsyncModel(item, self._client) for item in response["items"]
             ]
-        
+
         return response
 
     async def retrieve(self, user_id: str) -> UserAsyncModel:

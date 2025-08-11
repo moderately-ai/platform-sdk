@@ -1,10 +1,13 @@
 """Async datasets resource for the Moderately AI API."""
 
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from ..models._shared.dataset_operations import DatasetOperations
-from ..types import Dataset, PaginatedResponse
+from ..types import PaginatedResponse
 from ._base import AsyncBaseResource
+
+if TYPE_CHECKING:
+    from ..models.dataset_async import DatasetAsyncModel
 
 
 class AsyncDatasets(AsyncBaseResource):
@@ -23,26 +26,26 @@ class AsyncDatasets(AsyncBaseResource):
                 # Get a dataset with rich functionality
                 dataset = await client.datasets.retrieve("dataset_123")
 
-                # Create a new dataset 
+                # Create a new dataset
                 dataset = await client.datasets.create(
                     name="Customer Data",
                     description="Customer interaction dataset"
                 )
 
                 # Now use rich methods on the dataset object:
-                
+
                 # Upload data to the dataset
                 version = await dataset.upload_data("/path/to/sales_data.csv")
                 print(f"Uploaded version {version.version_no} with {version.row_count} rows")
-                
+
                 # Download current data
                 data_bytes = await dataset.download_data()
                 await dataset.download_data(path="/save/local_copy.csv")
-                
+
                 # Work with specific versions
                 versions = await dataset.list_data_versions()
                 old_data = await dataset.download_data(version_id="version_123")
-                
+
                 # Schema management
                 # Simple schema creation
                 schema = await dataset.create_schema([
@@ -50,7 +53,7 @@ class AsyncDatasets(AsyncBaseResource):
                     {"name": "email", "type": "string"},
                     {"name": "signup_date", "type": "datetime"},
                 ])
-                
+
                 # Auto-infer schema from sample data
                 schema = await dataset.create_schema_from_sample("sample.csv")
 
@@ -99,14 +102,14 @@ class AsyncDatasets(AsyncBaseResource):
             "/datasets",
             options={"query": query},
         )
-        
+
         # Convert items to DatasetAsyncModel instances
         if "items" in response:
             from ..models.dataset_async import DatasetAsyncModel
             response["items"] = [
                 DatasetAsyncModel(item, self._client) for item in response["items"]
             ]
-        
+
         return response
 
     async def retrieve(self, dataset_id: str) -> "DatasetAsyncModel":
@@ -122,7 +125,7 @@ class AsyncDatasets(AsyncBaseResource):
             NotFoundError: If the dataset doesn't exist.
         """
         from ..models.dataset_async import DatasetAsyncModel
-        
+
         data = await self._get(f"/datasets/{dataset_id}")
         return DatasetAsyncModel(data, self._client)
 
@@ -149,7 +152,7 @@ class AsyncDatasets(AsyncBaseResource):
             ValidationError: If the request data is invalid.
         """
         from ..models.dataset_async import DatasetAsyncModel
-        
+
         body = {
             "name": name,
             "teamId": self._client.team_id,  # Use client's team_id
@@ -185,7 +188,7 @@ class AsyncDatasets(AsyncBaseResource):
             ValidationError: If the request data is invalid.
         """
         from ..models.dataset_async import DatasetAsyncModel
-        
+
         body = {**kwargs}
         if name is not None:
             body["name"] = name

@@ -1,14 +1,13 @@
 """Async files resource for the Moderately AI API."""
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 import aiofiles
 import httpx
 
 from ..exceptions import APIError
 from ..models.file_async import FileAsyncModel
-from ..types import File, PaginatedResponse
 from ._base import AsyncBaseResource
 
 
@@ -36,7 +35,7 @@ class AsyncFiles(AsyncBaseResource):
         if file.is_ready() and file.is_document():
             content = await file.download()  # Download to memory
             await file.download(path="./local_copy.pdf")  # Download to disk
-            
+
         # Check file properties
         print(f"File: {file.name} ({file.file_size} bytes)")
         print(f"Type: {file.mime_type}, Extension: {file.get_extension()}")
@@ -93,13 +92,13 @@ class AsyncFiles(AsyncBaseResource):
             query["mime_type"] = mime_type
 
         response = await self._get("/files", options={"query": query})
-        
+
         # Convert items to FileAsyncModel instances
         if "items" in response:
             response["items"] = [
                 FileAsyncModel(item, self._client) for item in response["items"]
             ]
-        
+
         return response
 
     async def retrieve(self, file_id: str) -> FileAsyncModel:
@@ -201,7 +200,7 @@ class AsyncFiles(AsyncBaseResource):
         # Step 2: Calculate file properties
         import hashlib
         import mimetypes
-        
+
         file_size = len(file_data)
         file_hash = hashlib.sha256(file_data).hexdigest()
 

@@ -1,9 +1,9 @@
 """Datasets resource for the Moderately AI API."""
 
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from ..models.dataset import DatasetModel
-from ..types import Dataset, PaginatedResponse
+from ..types import PaginatedResponse
 from ._base import BaseResource
 
 
@@ -18,26 +18,26 @@ class Datasets(BaseResource):
         # Get a dataset with rich functionality
         dataset = client.datasets.retrieve("dataset_123")
 
-        # Create a new dataset 
+        # Create a new dataset
         dataset = client.datasets.create(
             name="Customer Data",
             description="Customer interaction dataset"
         )
 
         # Now use rich methods on the dataset object:
-        
+
         # Upload data to the dataset
         version = dataset.upload_data("/path/to/sales_data.csv")
         print(f"Uploaded version {version.version_no} with {version.row_count} rows")
-        
+
         # Download current data
         data_bytes = dataset.download_data()
         dataset.download_data(path="/save/local_copy.csv")
-        
+
         # Work with specific versions
         versions = dataset.list_data_versions()
         old_data = dataset.download_data(version_id="version_123")
-        
+
         # Schema management (NEW!)
         # Simple schema creation
         schema = dataset.create_schema([
@@ -45,10 +45,10 @@ class Datasets(BaseResource):
             {"name": "email", "type": "string"},
             {"name": "signup_date", "type": "datetime"},
         ])
-        
+
         # Auto-infer schema from sample data
         schema = dataset.create_schema_from_sample("sample.csv")
-        
+
         # Advanced schema with fluent API
         schema = (dataset.schema_builder()
             .add_column("id", "int", required=True)
@@ -56,15 +56,15 @@ class Datasets(BaseResource):
             .with_parsing(delimiter=",", header_row=1)
             .as_current()
             .create())
-        
+
         # Access dataset metadata
         print(f"Dataset has {dataset.record_count} records")
         print(f"Processing status: {dataset.processing_status}")
         current_schema = dataset.get_current_schema()
-        
+
         # Update dataset
         dataset.update(name="Updated Dataset Name", should_process=True)
-        
+
         # Delete dataset
         dataset.delete()
         ```
@@ -114,13 +114,13 @@ class Datasets(BaseResource):
             "/datasets",
             options={"query": query},
         )
-        
+
         # Convert items to DatasetModel instances
         if "items" in response:
             response["items"] = [
                 DatasetModel(item, self._client) for item in response["items"]
             ]
-        
+
         return response
 
     def retrieve(self, dataset_id: str) -> DatasetModel:

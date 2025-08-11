@@ -7,21 +7,21 @@ file properties.
 Example:
     ```python
     from moderatelyai_sdk import ModeratelyAI
-    
+
     client = ModeratelyAI(api_key="your_key", team_id="your_team")
-    
+
     # Upload a file and get a FileModel instance
     file = client.files.upload("document.pdf", name="Important Document")
-    
+
     # Use rich file operations
     if file.is_ready() and file.is_document():
         content = file.download()  # Download to memory
         file.download(path="./local_copy.pdf")  # Download to disk
-        
+
     # Check file properties
     print(f"File: {file.name} ({file.file_size} bytes)")
     print(f"Type: {file.mime_type}, Extension: {file.get_extension()}")
-    
+
     # Delete when done
     file.delete()
     ```
@@ -38,16 +38,16 @@ from ._base import BaseModel
 
 class FileModel(BaseModel):
     """Model representing a file with rich file operations.
-    
+
     FileModel provides a high-level interface for working with files in the
     Moderately AI platform. Instead of working with raw dictionaries, you get
     a rich object with methods for common file operations.
-    
+
     This class is returned by file operations like:
     - `client.files.upload()`
     - `client.files.retrieve()`
     - `client.files.list()` (returns list of FileModel instances)
-    
+
     Attributes:
         file_id: Unique identifier for the file
         name: Display name of the file
@@ -61,18 +61,18 @@ class FileModel(BaseModel):
         metadata: Additional file metadata
         created_at: Creation timestamp
         updated_at: Last update timestamp
-    
+
     Example:
         ```python
         # Get a file and check its properties
         file = client.files.retrieve("file_123")
-        
+
         if file.is_csv() and file.is_ready():
             print(f"Ready CSV file: {file.name} ({file.file_size} bytes)")
-            
+
             # Download to memory
             content = file.download()
-            
+
             # Or download to disk
             file.download(path="./data.csv")
         ```
@@ -140,33 +140,33 @@ class FileModel(BaseModel):
 
     def download(self, *, path: Optional[Union[str, Path]] = None) -> Optional[bytes]:
         """Download the file content.
-        
+
         Downloads the file content either to memory or to a local file. This method
         handles the presigned URL workflow automatically and creates parent directories
         as needed when saving to disk.
-        
+
         Args:
             path: Optional path to save the file. If provided, saves to this location
                  and creates parent directories if they don't exist. If not provided,
                  returns the file content as bytes.
-                 
+
         Returns:
             If path is provided: None (file is saved to disk)
             If path is not provided: The file content as bytes
-            
+
         Raises:
             APIError: If the download fails or the file is not ready
             IOError: If unable to write to the specified path
-            
+
         Example:
             ```python
             # Download to memory
             content = file.download()
             print(f"Downloaded {len(content)} bytes")
-            
+
             # Download to disk
             file.download(path="./downloads/myfile.pdf")
-            
+
             # Download with automatic directory creation
             file.download(path="./new_folder/subfolder/file.csv")
             ```
@@ -177,7 +177,7 @@ class FileModel(BaseModel):
             path=f"/files/{self.file_id}/download",
             cast_type=dict,
         )
-        
+
         # Handle different response formats
         file_data: bytes
         if "downloadUrl" in response:
@@ -215,14 +215,14 @@ class FileModel(BaseModel):
 
     def delete(self) -> None:
         """Delete this file permanently.
-        
+
         This operation cannot be undone. The file will be removed from both
         the database and cloud storage.
-        
+
         Raises:
             APIError: If the deletion fails
             NotFoundError: If the file doesn't exist
-            
+
         Example:
             ```python
             # Delete a file
@@ -239,13 +239,13 @@ class FileModel(BaseModel):
 
     def is_ready(self) -> bool:
         """Check if the file is ready for use (processing complete).
-        
+
         Files may need processing after upload. Use this method to check if
         a file is ready for operations like downloading or analysis.
-        
+
         Returns:
             True if the file status is 'ready' or 'completed', False otherwise.
-            
+
         Example:
             ```python
             if file.is_ready():
@@ -259,10 +259,10 @@ class FileModel(BaseModel):
 
     def is_processing(self) -> bool:
         """Check if the file is currently being processed.
-        
+
         Returns:
             True if the file status is 'processing', False otherwise.
-            
+
         Example:
             ```python
             if file.is_processing():
@@ -273,10 +273,10 @@ class FileModel(BaseModel):
 
     def has_error(self) -> bool:
         """Check if the file has an error status.
-        
+
         Returns:
             True if the file status is 'error', False otherwise.
-            
+
         Example:
             ```python
             if file.has_error():
@@ -288,10 +288,10 @@ class FileModel(BaseModel):
 
     def get_extension(self) -> str:
         """Get the file extension from the filename.
-        
+
         Returns:
             The file extension (including the dot), or empty string if none.
-            
+
         Example:
             ```python
             ext = file.get_extension()
@@ -303,12 +303,12 @@ class FileModel(BaseModel):
 
     def is_image(self) -> bool:
         """Check if this file is an image based on MIME type.
-        
+
         Detects common image formats like JPEG, PNG, GIF, SVG, etc.
-        
+
         Returns:
             True if the MIME type indicates an image.
-            
+
         Example:
             ```python
             if file.is_image():
@@ -320,16 +320,16 @@ class FileModel(BaseModel):
 
     def is_document(self) -> bool:
         """Check if this file is a document (PDF, Word, etc.).
-        
+
         Detects common document formats including:
         - PDF files
         - Microsoft Word documents (.doc, .docx)
         - Microsoft Excel spreadsheets (.xls, .xlsx)
         - Microsoft PowerPoint presentations (.ppt, .pptx)
-        
+
         Returns:
             True if the MIME type indicates a document.
-            
+
         Example:
             ```python
             if file.is_document():
@@ -350,12 +350,12 @@ class FileModel(BaseModel):
 
     def is_text(self) -> bool:
         """Check if this file is a text file.
-        
+
         Detects all text-based files including plain text, CSV, JSON, XML, etc.
-        
+
         Returns:
             True if the MIME type indicates a text file.
-            
+
         Example:
             ```python
             if file.is_text():
@@ -367,13 +367,13 @@ class FileModel(BaseModel):
 
     def is_csv(self) -> bool:
         """Check if this file is a CSV file.
-        
+
         Specifically detects CSV (Comma-Separated Values) files, which are
         commonly used for tabular data.
-        
+
         Returns:
             True if the MIME type indicates a CSV file.
-            
+
         Example:
             ```python
             if file.is_csv():

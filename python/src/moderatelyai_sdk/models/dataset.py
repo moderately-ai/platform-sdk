@@ -7,46 +7,48 @@ for uploading data, creating schemas, and managing dataset versions.
 Example:
     ```python
     from moderatelyai_sdk import ModeratelyAI
-    
+
     client = ModeratelyAI(api_key="your_key", team_id="your_team")
-    
+
     # Create a dataset
     dataset = client.datasets.create(
         name="Sales Data",
         description="Monthly sales records"
     )
-    
+
     # Upload data
     data_version = dataset.upload_data("sales.csv")
-    
+
     # Create a schema from sample data
     schema = dataset.create_schema_from_sample("sales.csv")
-    
+
     # Download processed data
     content = data_version.download()
     ```
 """
 
+import csv
 import hashlib
-import mimetypes
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 import httpx
 
 from ..exceptions import APIError
-from ..types import Dataset, PaginatedResponse
 from ._base import BaseModel
+
+if TYPE_CHECKING:
+    from .dataset_schema import DatasetSchemaVersionModel, SchemaBuilder
 
 
 class DatasetDataVersionModel(BaseModel):
     """Model representing a dataset data version.
-    
+
     A data version represents a specific upload of data to a dataset. Each time
     you upload new data to a dataset, a new data version is created. This model
     provides access to version metadata and download functionality.
-    
+
     Attributes:
         dataset_data_version_id: Unique identifier for this data version
         dataset_id: ID of the parent dataset
@@ -58,15 +60,15 @@ class DatasetDataVersionModel(BaseModel):
         status: Processing status (draft, current, archived)
         created_at: Creation timestamp
         updated_at: Last update timestamp
-    
+
     Example:
         ```python
         # Get the current data version
         data_version = dataset.get_data_version("version_id")
-        
+
         print(f"Version {data_version.version_no}: {data_version.file_type}")
         print(f"Rows: {data_version.row_count}, Size: {data_version.file_size_bytes}")
-        
+
         # Download the data
         content = data_version.download()
         data_version.download(path="./local_data.csv")
@@ -125,11 +127,11 @@ class DatasetDataVersionModel(BaseModel):
 
     def download(self, *, path: Optional[Union[str, Path]] = None) -> Optional[bytes]:
         """Download the data for this version.
-        
+
         Args:
             path: Optional path to save the file. If provided, saves to this location.
                  If not provided, returns the file content as bytes.
-                 
+
         Returns:
             If path is provided: None (file is saved to disk)
             If path is not provided: The file content as bytes
@@ -140,9 +142,9 @@ class DatasetDataVersionModel(BaseModel):
             path=f"/dataset-data-versions/{self.dataset_data_version_id}/download",
             cast_type=dict,
         )
-        
+
         download_url = response["downloadUrl"]
-        
+
         # Download the file
         try:
             with httpx.Client() as client:
@@ -176,23 +178,23 @@ class DatasetDataVersionModel(BaseModel):
 
 class DatasetModel(BaseModel):
     """Model representing a dataset with rich data operations.
-    
+
     DatasetModel provides a high-level interface for working with datasets in the
     Moderately AI platform. It offers rich functionality for data upload, schema
     management, and version control.
-    
+
     Key Features:
     - Upload data in various formats (CSV, Excel)
     - Automatic schema inference from sample data
     - Schema builder with fluent API
     - Data version management and downloads
     - Rich metadata access
-    
+
     This class is returned by dataset operations like:
     - `client.datasets.create()`
     - `client.datasets.retrieve()`
     - `client.datasets.list()` (returns list of DatasetModel instances)
-    
+
     Attributes:
         dataset_id: Unique identifier for the dataset
         name: Dataset display name
@@ -205,7 +207,7 @@ class DatasetModel(BaseModel):
         processing_status: Data processing status
         created_at: Creation timestamp
         updated_at: Last update timestamp
-    
+
     Example:
         ```python
         # Create a dataset
@@ -213,11 +215,11 @@ class DatasetModel(BaseModel):
             name="Customer Data",
             description="Customer information and metrics"
         )
-        
+
         # Upload data with automatic schema inference
         data_version = dataset.upload_data("customers.csv")
         schema = dataset.create_schema_from_sample("customers.csv")
-        
+
         # Use schema builder for complex schemas
         schema = (dataset.schema_builder()
             .add_column("id", "int", required=True)
@@ -225,10 +227,10 @@ class DatasetModel(BaseModel):
             .add_column("signup_date", "datetime")
             .as_current()
             .create())
-        
+
         # Access dataset information
         print(f"Dataset: {dataset.name} ({dataset.record_count} records)")
-        
+
         # Download current data
         content = dataset.download_data()
         ```
@@ -398,7 +400,7 @@ class DatasetModel(BaseModel):
         try:
             # Determine content type
             content_type = "text/csv" if file_type == "csv" else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            
+
             with httpx.Client() as client:
                 upload_result = client.put(
                     upload_url,
@@ -421,10 +423,10 @@ class DatasetModel(BaseModel):
                 },
                 cast_type=dict,
             )
-            
+
             # Return the completed data version as a model
             return DatasetDataVersionModel(complete_response, self._client)
-            
+
         except Exception as e:
             raise APIError(f"Failed to complete data version upload: {e}") from e
 
@@ -451,14 +453,14 @@ class DatasetModel(BaseModel):
         """
         # Use provided version_id or fall back to current version
         target_version_id = version_id or self.current_data_version_id
-        
+
         if not target_version_id:
             raise ValueError("No data version specified and dataset has no current version")
 
         # Create a data version model and use its download method
         version_data = {"datasetDataVersionId": target_version_id}
         version_model = DatasetDataVersionModel(version_data, self._client)
-        
+
         return version_model.download(path=path)
 
     def list_data_versions(
@@ -633,7 +635,6 @@ class DatasetModel(BaseModel):
             api_columns.append(api_column)
 
         # Import here to avoid circular imports
-        from .dataset_schema_version import DatasetSchemaVersionModel
         from ..resources.dataset_schema_versions import DatasetSchemaVersions
 
         # Create using internal resource
@@ -649,7 +650,7 @@ class DatasetModel(BaseModel):
         self,
         sample_file: Union[str, Path],
         *,
-        status: str = "draft", 
+        status: str = "draft",
         header_row: int = 1,
         sample_size: int = 100,
     ) -> "DatasetSchemaVersionModel":
@@ -667,7 +668,6 @@ class DatasetModel(BaseModel):
         Raises:
             ValueError: If file format is not supported or file is invalid.
         """
-        import csv
 
         file_path = Path(sample_file)
         if not file_path.exists():
@@ -677,29 +677,29 @@ class DatasetModel(BaseModel):
             raise ValueError("Only CSV files are currently supported for auto-inference")
 
         # Read and analyze the CSV
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, encoding='utf-8') as f:
             # Detect delimiter
             sample = f.read(1024)
             f.seek(0)
-            
+
             sniffer = csv.Sniffer()
             try:
                 dialect = sniffer.sniff(sample)
                 delimiter = dialect.delimiter
-            except:
+            except csv.Error:
                 delimiter = ","  # Default fallback
 
             reader = csv.reader(f, delimiter=delimiter)
-            
+
             # Skip to header row (1-based to 0-based)
             for _ in range(header_row - 1):
                 next(reader, None)
-                
+
             # Get headers
             try:
                 headers = next(reader)
-            except StopIteration:
-                raise ValueError("Could not read headers from file")
+            except StopIteration as e:
+                raise ValueError("Could not read headers from file") from e
 
             # Sample data for type inference
             sample_rows = []
@@ -716,10 +716,10 @@ class DatasetModel(BaseModel):
         for i, header in enumerate(headers):
             column_values = [row[i] if i < len(row) else "" for row in sample_rows]
             column_values = [v.strip() for v in column_values if v.strip()]  # Remove empty values
-            
+
             inferred_type = self._infer_column_type(column_values)
             has_nulls = len(column_values) < len(sample_rows)
-            
+
             columns.append({
                 "name": header.strip(),
                 "type": inferred_type,
@@ -742,7 +742,7 @@ class DatasetModel(BaseModel):
 
     def _infer_column_type(self, values: List[str]) -> str:
         """Infer the data type of a column from sample values."""
-        
+
         if not values:
             return "string"
 
@@ -782,7 +782,7 @@ class DatasetModel(BaseModel):
             r'\d{2}/\d{2}/\d{4}',  # MM/DD/YYYY
             r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}',  # YYYY-MM-DD HH:MM:SS
         ]
-        
+
         datetime_count = 0
         for value in values:
             if any(re.match(pattern, value) for pattern in datetime_patterns):

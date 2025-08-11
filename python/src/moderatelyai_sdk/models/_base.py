@@ -8,14 +8,14 @@ if TYPE_CHECKING:
 
 class BaseModel:
     """Base class for all SDK model objects.
-    
+
     Provides common functionality for models that wrap API data and provide
     rich methods for interacting with the API.
     """
 
     def __init__(self, data: Dict[str, Any], client: "BaseClient") -> None:
         """Initialize the model with API data and client reference.
-        
+
         Args:
             data: Raw API response data
             client: Client instance for making API calls
@@ -25,7 +25,7 @@ class BaseModel:
 
     def _refresh(self) -> None:
         """Refresh the model data by fetching from the API.
-        
+
         This method should be overridden by subclasses to implement
         the specific refresh logic for each model type.
         """
@@ -33,7 +33,7 @@ class BaseModel:
 
     def to_dict(self) -> Dict[str, Any]:
         """Return the raw API data as a dictionary.
-        
+
         Returns:
             The underlying API data dictionary
         """

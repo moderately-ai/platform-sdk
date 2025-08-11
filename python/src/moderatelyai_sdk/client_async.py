@@ -23,8 +23,30 @@ from .types import HTTPMethod
 class AsyncModeratelyAI(AsyncBaseClient):
     """Asynchronous client for the Moderately AI API.
 
-    This client provides the same interface as the synchronous client,
-    but all methods are async and return awaitable objects.
+    The async client provides the same interface as the synchronous client,
+    but all methods are async and return awaitable objects. Ideal for use in
+    async frameworks like FastAPI, aiohttp, or asyncio applications.
+
+    Attributes:
+        users: User management operations (async)
+        teams: Team settings and information (async)
+        agents: AI agent management and execution (async)
+        agent_executions: Agent execution monitoring (async)
+        datasets: Dataset upload, management, and schema operations (async)
+        pipelines: Pipeline creation and configuration management (async)
+        pipeline_configuration_versions: Pipeline workflow configuration (async)
+        pipeline_executions: Pipeline execution and monitoring (async)
+        files: File upload, download, and management (async)
+
+    Args:
+        api_key: Your API key. If not provided, reads from MODERATELY_API_KEY environment variable.
+        team_id: Your team ID. If not provided, reads from MODERATELY_TEAM_ID environment variable.
+        base_url: API base URL. Defaults to https://api.moderately.ai
+        timeout: Request timeout in seconds. Defaults to 10.0.
+        max_retries: Maximum retry attempts. Defaults to 2.
+        default_headers: Additional headers to include in all requests. Optional.
+        default_query: Additional query parameters to include in all requests. Optional.
+        http_client: Custom async HTTP client instance. Optional.
 
     Example:
         ```python
@@ -32,16 +54,37 @@ class AsyncModeratelyAI(AsyncBaseClient):
         import moderatelyai_sdk
 
         async def main():
-            # Initialize with environment variables (recommended)
-            async with moderatelyai_sdk.AsyncModeratelyAI() as client:  # reads MODERATELY_API_KEY and MODERATELY_TEAM_ID
-                # Use the client - team_id is automatically added to requests
-                users = await client.users.list()  # automatically filtered to your team
-                dataset = await client.datasets.create(name="My Data")  # created in your team
-                pipeline = await client.pipelines.create(name="Data Pipeline")  # created in your team
-                file = await client.files.upload(file_path="data.csv", name="Training Data")  # uploaded to your team
+            # Use as async context manager (recommended)
+            async with moderatelyai_sdk.AsyncModeratelyAI() as client:
+                # All operations are awaitable and team-scoped
+                users = await client.users.list()                    # User management
+                dataset = await client.datasets.create(name="Data")  # Dataset operations
+                agents = await client.agents.list()                  # AI agent management
+                file = await client.files.upload(file="data.csv")    # File management
 
         asyncio.run(main())
         ```
+
+        ```python
+        # FastAPI integration example
+        from fastapi import FastAPI, UploadFile
+        import moderatelyai_sdk
+
+        app = FastAPI()
+
+        @app.post("/upload")
+        async def upload_file(file: UploadFile):
+            async with moderatelyai_sdk.AsyncModeratelyAI() as client:
+                uploaded = await client.files.upload(
+                    file=await file.read(),
+                    name=file.filename
+                )
+                return {"file_id": uploaded.file_id, "name": uploaded.name}
+        ```
+
+    Raises:
+        AuthenticationError: If API key is invalid or missing.
+        ValidationError: If required parameters are missing or invalid.
     """
 
     def __init__(

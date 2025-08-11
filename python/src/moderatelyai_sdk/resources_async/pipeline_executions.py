@@ -264,9 +264,9 @@ class AsyncPipelineExecutions(AsyncBaseResource):
         """
         import json
         import urllib.request
-        
+
         result = await self._get(f"/pipeline-executions/{pipeline_execution_id}/output")
-        
+
         if result.get('type') == 'inline':
             # Output is stored inline in the response
             return result.get('data', {})
@@ -275,17 +275,17 @@ class AsyncPipelineExecutions(AsyncBaseResource):
             download_url = result.get('downloadUrl')
             if not download_url:
                 return None
-                
+
             # Download from presigned S3 URL
             request = urllib.request.Request(download_url)
             with urllib.request.urlopen(request) as response:
                 content = response.read()
-                
+
                 # Check if content is compressed
                 if result.get('metadata', {}).get('compressionType') == 'gzip':
                     import gzip
                     content = gzip.decompress(content)
-                
+
                 # Parse JSON output
                 output_data = json.loads(content.decode('utf-8'))
                 return output_data

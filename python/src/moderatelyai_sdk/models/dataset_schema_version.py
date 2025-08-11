@@ -7,20 +7,20 @@ underlying schema structure.
 Example:
     ```python
     from moderatelyai_sdk import ModeratelyAI
-    
+
     client = ModeratelyAI(api_key="your_key", team_id="your_team")
     dataset = client.datasets.retrieve("dataset_123")
-    
+
     # Simple schema creation
     schema = dataset.create_schema([
         {"name": "id", "type": "int", "required": True},
         {"name": "name", "type": "string"},
         {"name": "created_at", "type": "datetime"}
     ])
-    
+
     # Auto-inference from CSV
     schema = dataset.create_schema_from_sample("data.csv")
-    
+
     # Advanced fluent API
     schema = (dataset.schema_builder()
         .add_column("user_id", "int", required=True)
@@ -38,17 +38,17 @@ from ._base import BaseModel
 
 class DatasetSchemaVersionModel(BaseModel):
     """Model representing a dataset schema version with rich functionality.
-    
+
     A schema version defines the structure and data types for a dataset's columns.
     This model provides methods for managing schema versions, including activation,
     column manipulation, and updates.
-    
+
     Key Features:
     - Activate/archive schema versions
     - Add/remove columns dynamically
     - Update schema properties
     - Rich column access and validation
-    
+
     Attributes:
         dataset_schema_version_id: Unique identifier for this schema version
         dataset_id: ID of the parent dataset
@@ -58,18 +58,18 @@ class DatasetSchemaVersionModel(BaseModel):
         parsing_options: Data parsing configuration
         created_at: Creation timestamp
         updated_at: Last update timestamp
-    
+
     Example:
         ```python
         # Get current schema
         schema = dataset.get_current_schema()
-        
+
         # Add a new column
         schema.add_column("new_field", "string", required=False)
-        
+
         # Activate the schema
         schema.activate()
-        
+
         # Access column information
         user_id_col = schema.get_column("user_id")
         print(f"Column: {user_id_col['name']} ({user_id_col['type']})")
@@ -118,7 +118,7 @@ class DatasetSchemaVersionModel(BaseModel):
 
     def activate(self) -> "DatasetSchemaVersionModel":
         """Make this schema version the current/active one.
-        
+
         Returns:
             Updated schema version model.
         """
@@ -126,7 +126,7 @@ class DatasetSchemaVersionModel(BaseModel):
 
     def archive(self) -> "DatasetSchemaVersionModel":
         """Archive this schema version.
-        
+
         Returns:
             Updated schema version model.
         """
@@ -194,7 +194,7 @@ class DatasetSchemaVersionModel(BaseModel):
         # Convert user-friendly types to API types
         type_mapping = {
             "str": "string",
-            "int": "integer", 
+            "int": "integer",
             "float": "float",
             "datetime": "datetime",
             "bool": "boolean",
@@ -241,16 +241,16 @@ class DatasetSchemaVersionModel(BaseModel):
         """
         columns = self.columns.copy()
         original_length = len(columns)
-        
+
         # Remove column by name
         columns = [col for col in columns if col.get("name") != name]
-        
+
         if len(columns) == original_length:
             raise ValueError(f"Column '{name}' not found in schema")
 
         return self.update(columns=columns)
 
-    def get_column(self, name: str) -> Optional[Dict[str, Any]]:  
+    def get_column(self, name: str) -> Optional[Dict[str, Any]]:
         """Get a column definition by name.
 
         Args:
@@ -276,17 +276,17 @@ class DatasetSchemaVersionModel(BaseModel):
 
 class SchemaBuilder:
     """Fluent API builder for creating dataset schema versions.
-    
+
     SchemaBuilder provides a chainable interface for constructing complex dataset
     schemas with parsing options and validation. It offers the most advanced level
     of schema creation with full control over column properties and data processing.
-    
+
     The builder pattern allows you to:
     - Add columns with detailed specifications
     - Configure parsing options (delimiters, headers, encoding)
     - Set schema status (draft/current)
     - Create the final schema version
-    
+
     Example:
         ```python
         # Build a comprehensive schema
@@ -302,14 +302,14 @@ class SchemaBuilder:
             )
             .as_current()  # Mark as active schema
             .create())      # Execute the creation
-        
+
         print(f"Created schema version {schema.version_no}")
         ```
     """
 
     def __init__(self, dataset_id: str, client):
         """Initialize schema builder.
-        
+
         Args:
             dataset_id: The dataset to create schema for.
             client: The API client instance.
@@ -347,7 +347,7 @@ class SchemaBuilder:
         type_mapping = {
             "str": "string",
             "int": "integer",
-            "float": "float", 
+            "float": "float",
             "datetime": "datetime",
             "bool": "boolean",
             "date": "datetime",
@@ -402,7 +402,7 @@ class SchemaBuilder:
 
     def as_draft(self) -> "SchemaBuilder":
         """Set the schema status to draft.
-        
+
         Returns:
             This builder for method chaining.
         """
@@ -411,7 +411,7 @@ class SchemaBuilder:
 
     def as_current(self) -> "SchemaBuilder":
         """Set the schema status to current (active).
-        
+
         Returns:
             This builder for method chaining.
         """
@@ -434,7 +434,7 @@ class SchemaBuilder:
         # Build request body
         body = {
             "datasetId": self._dataset_id,
-            "columns": self._columns,  # Note: API expects 'columns', not 'columnsJson' 
+            "columns": self._columns,  # Note: API expects 'columns', not 'columnsJson'
             "status": self._status,
         }
 

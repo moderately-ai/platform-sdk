@@ -1,7 +1,7 @@
 """Async base client functionality shared between async clients."""
 
-import json
 import asyncio
+import json
 from typing import Any, Dict, Optional, Union
 from urllib.parse import urljoin
 
@@ -9,7 +9,6 @@ import httpx
 
 from .exceptions import (
     APIError,
-    AuthenticationError,
     RateLimitError,
     TimeoutError,
     ValidationError,
@@ -134,11 +133,11 @@ class AsyncBaseClient:
         # Handle successful responses
         if response.status_code == 204:  # No Content
             return None
-            
+
         # Handle empty responses (like DELETE operations)
         if cast_type is type(None):
             return None
-            
+
         # Parse JSON response
         try:
             data = response.json()

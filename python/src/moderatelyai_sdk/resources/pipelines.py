@@ -3,7 +3,7 @@
 from typing import List, Optional
 
 from ..models.pipeline import PipelineModel
-from ..types import PaginatedResponse, Pipeline
+from ..types import PaginatedResponse
 from ._base import BaseResource
 
 
@@ -78,13 +78,13 @@ class Pipelines(BaseResource):
             query["orderBy"] = order_by
 
         response = self._get("/pipelines", options={"query": query})
-        
+
         # Convert pipeline items to fat models
         if "items" in response:
             response["items"] = [
                 PipelineModel(item, self._client) for item in response["items"]
             ]
-        
+
         return response
 
     def retrieve(self, pipeline_id: str) -> PipelineModel:

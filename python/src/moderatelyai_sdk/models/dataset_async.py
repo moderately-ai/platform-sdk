@@ -8,7 +8,7 @@ Example:
     ```python
     import asyncio
     from moderatelyai_sdk import AsyncModeratelyAI
-    
+
     async def main():
         async with AsyncModeratelyAI(api_key="your_key", team_id="your_team") as client:
             # Create a dataset
@@ -16,41 +16,42 @@ Example:
                 name="Sales Data",
                 description="Monthly sales records"
             )
-            
+
             # Upload data
             data_version = await dataset.upload_data("sales.csv")
-            
+
             # Create a schema from sample data
             schema = await dataset.create_schema_from_sample("sales.csv")
-            
+
             # Download processed data
             content = await data_version.download()
-    
+
     asyncio.run(main())
     ```
 """
 
-import hashlib
-import mimetypes
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 import aiofiles
 import httpx
 
 from ..exceptions import APIError
-from ..types import Dataset, PaginatedResponse
 from ._base_async import BaseAsyncModel
+
+if TYPE_CHECKING:
+    from .dataset_schema import AsyncSchemaBuilder, DatasetSchemaVersionAsyncModel
+
 from ._shared.dataset_operations import DatasetOperations
 
 
 class DatasetDataVersionAsyncModel(BaseAsyncModel):
     """Async model representing a dataset data version.
-    
+
     A data version represents a specific upload of data to a dataset. Each time
     you upload new data to a dataset, a new data version is created. This model
     provides access to version metadata and async download functionality.
-    
+
     Attributes:
         dataset_data_version_id: Unique identifier for this data version
         dataset_id: ID of the parent dataset
@@ -62,15 +63,15 @@ class DatasetDataVersionAsyncModel(BaseAsyncModel):
         status: Processing status (draft, current, archived)
         created_at: Creation timestamp
         updated_at: Last update timestamp
-    
+
     Example:
         ```python
         # Get the current data version
         data_version = await dataset.get_data_version("version_id")
-        
+
         print(f"Version {data_version.version_no}: {data_version.file_type}")
         print(f"Rows: {data_version.row_count}, Size: {data_version.file_size_bytes}")
-        
+
         # Download the data
         content = await data_version.download()
         await data_version.download(path="./local_data.csv")
@@ -163,7 +164,7 @@ class DatasetDataVersionAsyncModel(BaseAsyncModel):
                 # Save to file asynchronously
                 file_path = Path(path)
                 file_path.parent.mkdir(parents=True, exist_ok=True)
-                
+
                 async with aiofiles.open(file_path, "wb") as f:
                     await f.write(content)
                 return None
@@ -186,17 +187,17 @@ class DatasetDataVersionAsyncModel(BaseAsyncModel):
 
 class DatasetAsyncModel(BaseAsyncModel):
     """Async model representing a dataset with rich functionality.
-    
+
     This model wraps a dataset API response and provides rich methods for
     working with the dataset, including uploading data, creating schemas,
     and managing data versions.
-    
+
     All properties return the current values from the API response. Methods
     that modify the dataset will update the internal data automatically.
-    
+
     Attributes:
         dataset_id: Unique identifier for this dataset
-        name: Dataset name  
+        name: Dataset name
         description: Dataset description
         team_id: Team that owns this dataset
         record_count: Number of records in current data version
@@ -206,7 +207,7 @@ class DatasetAsyncModel(BaseAsyncModel):
         processing_status: Data processing status
         created_at: Creation timestamp
         updated_at: Last update timestamp
-    
+
     Example:
         ```python
         # Create a dataset
@@ -214,11 +215,11 @@ class DatasetAsyncModel(BaseAsyncModel):
             name="Customer Data",
             description="Customer information and metrics"
         )
-        
+
         # Upload data with automatic schema inference
         data_version = await dataset.upload_data("customers.csv")
         schema = await dataset.create_schema_from_sample("customers.csv")
-        
+
         # Use schema builder for complex schemas
         schema = await (dataset.schema_builder()
             .add_column("id", "int", required=True)
@@ -226,10 +227,10 @@ class DatasetAsyncModel(BaseAsyncModel):
             .add_column("signup_date", "datetime")
             .as_current()
             .create())
-        
+
         # Access dataset information
         print(f"Dataset: {dataset.name} ({dataset.record_count} records)")
-        
+
         # Download current data
         content = await dataset.download_data()
         ```
@@ -322,7 +323,7 @@ class DatasetAsyncModel(BaseAsyncModel):
         create_body = DatasetOperations.build_create_data_version_body(
             self.dataset_id, file_name, file_type, status
         )
-        
+
         create_response = await self._client._request(
             method="POST",
             path="/dataset-data-versions",
@@ -336,7 +337,7 @@ class DatasetAsyncModel(BaseAsyncModel):
         # Step 3: Upload the file to the presigned URL (async)
         try:
             content_type = "text/csv" if file_type == "csv" else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            
+
             async with httpx.AsyncClient() as client:
                 upload_result = await client.put(
                     upload_url,
@@ -359,10 +360,10 @@ class DatasetAsyncModel(BaseAsyncModel):
                 },
                 cast_type=dict,
             )
-            
+
             # Return the completed data version as a model
             return DatasetDataVersionAsyncModel(complete_response, self._client)
-            
+
         except Exception as e:
             raise APIError(f"Failed to complete data version upload: {e}") from e
 
@@ -389,14 +390,14 @@ class DatasetAsyncModel(BaseAsyncModel):
         """
         # Use provided version_id or fall back to current version
         target_version_id = version_id or self.current_data_version_id
-        
+
         if not target_version_id:
             raise ValueError("No data version specified and dataset has no current version")
 
         # Create a data version model and use its download method
         version_data = {"datasetDataVersionId": target_version_id}
         version_model = DatasetDataVersionAsyncModel(version_data, self._client)
-        
+
         return await version_model.download(path=path)
 
     async def list_data_versions(
@@ -551,7 +552,7 @@ class DatasetAsyncModel(BaseAsyncModel):
             APIError: If schema creation fails.
         """
         from .dataset_schema_version_async import DatasetSchemaVersionAsyncModel
-        
+
         # Validate columns using shared logic
         validated_columns = DatasetOperations.validate_schema_columns(columns)
 

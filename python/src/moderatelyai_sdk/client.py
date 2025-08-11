@@ -23,6 +23,32 @@ from .types import HTTPMethod
 class ModeratelyAI(BaseClient):
     """Synchronous client for the Moderately AI API.
 
+    The main client for interacting with the Moderately AI platform. Provides access
+    to all platform resources through resource groups like files, datasets, agents,
+    and pipelines. All operations are automatically scoped to your team.
+
+    Attributes:
+        users: User management operations
+        teams: Team settings and information
+        agents: AI agent management and execution
+        agent_executions: Agent execution monitoring
+        datasets: Dataset upload, management, and schema operations
+        pipelines: Pipeline creation and configuration management
+        pipeline_configuration_versions: Pipeline workflow configuration
+        pipeline_executions: Pipeline execution and monitoring
+        files: File upload, download, and management
+
+    Args:
+        api_key: Your API key. If not provided, reads from MODERATELY_API_KEY environment variable.
+        team_id: Your team ID. If not provided, reads from MODERATELY_TEAM_ID environment variable.
+        base_url: API base URL. Defaults to https://api.moderately.ai
+        timeout: Request timeout in seconds. Defaults to 30.0.
+        max_retries: Maximum retry attempts. Defaults to 3.
+        retry_config: Custom retry configuration. Optional.
+        default_headers: Additional headers to include in all requests. Optional.
+        default_query: Additional query parameters to include in all requests. Optional.
+        http_client: Custom HTTP client instance. Optional.
+
     Example:
         ```python
         import moderatelyai_sdk
@@ -36,15 +62,25 @@ class ModeratelyAI(BaseClient):
             api_key="your-api-key"
         )
 
-        # Or mix environment and explicit
-        client = moderatelyai_sdk.ModeratelyAI(team_id="your-team-id")  # reads MODERATELY_API_KEY from env
+        # Advanced configuration
+        client = moderatelyai_sdk.ModeratelyAI(
+            team_id="your-team-id",
+            api_key="your-api-key",
+            timeout=60,
+            max_retries=5
+        )
 
-        # Use the client - team_id is automatically added to requests
-        users = client.users.list()  # automatically filtered to your team
-        dataset = client.datasets.create(name="My Data")  # created in your team
-        pipeline = client.pipelines.create(name="Data Pipeline")  # created in your team
-        file = client.files.upload(file_path="data.csv", name="Training Data")  # uploaded to your team
+        # Use the client - all operations are automatically scoped to your team
+        users = client.users.list()                    # User management
+        dataset = client.datasets.create(name="Data")  # Dataset operations
+        agents = client.agents.list()                  # AI agent management
+        pipeline = client.pipelines.create(name="ML")  # Pipeline operations
+        file = client.files.upload(file="data.csv")    # File management
         ```
+
+    Raises:
+        AuthenticationError: If API key is invalid or missing.
+        ValidationError: If required parameters are missing or invalid.
     """
 
     def __init__(

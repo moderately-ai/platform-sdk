@@ -187,7 +187,7 @@ class PipelineConfigurationVersionModel(BaseModel):
             ```
         """
         from .pipeline_execution import PipelineExecutionModel
-        
+
         # Create the execution
         execution_data = self._client._make_request(
             method="POST",
@@ -200,13 +200,13 @@ class PipelineConfigurationVersionModel(BaseModel):
                 **kwargs
             }
         )
-        
+
         execution = PipelineExecutionModel(execution_data, self._client)
-        
+
         # If not blocking, return immediately
         if not block:
             return execution
-        
+
         # Block and poll until completion
         return execution.wait_for_completion(
             timeout=timeout,
@@ -234,7 +234,7 @@ class PipelineConfigurationVersionModel(BaseModel):
             List of execution models.
         """
         from .pipeline_execution import PipelineExecutionModel
-        
+
         query = {
             "pipelineConfigurationVersionIds": self.configuration_version_id,
             "page": page,
@@ -251,7 +251,7 @@ class PipelineConfigurationVersionModel(BaseModel):
             cast_type=dict,
             options={"query": query}
         )
-        
+
         return [
             PipelineExecutionModel(item, self._client)
             for item in response.get("items", [])
@@ -264,7 +264,7 @@ class PipelineConfigurationVersionModel(BaseModel):
             Pipeline model instance.
         """
         from .pipeline import PipelineModel
-        
+
         pipeline_data = self._client._make_request(
             method="GET",
             path=f"/pipelines/{self.pipeline_id}",

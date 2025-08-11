@@ -18,10 +18,27 @@ from .exceptions import (
     UnprocessableEntityError,
     ValidationError,
 )
-from .models import DatasetModel, DatasetDataVersionModel, DatasetSchemaVersionModel, SchemaBuilder, FileModel, FileAsyncModel, UserModel, UserAsyncModel
+from .models import (
+    DatasetDataVersionModel,
+    DatasetModel,
+    DatasetSchemaVersionModel,
+    FileAsyncModel,
+    FileModel,
+    SchemaBuilder,
+    UserAsyncModel,
+    UserModel,
+)
 from .models.dataset_async import DatasetAsyncModel, DatasetDataVersionAsyncModel
-from .models.dataset_schema_version_async import DatasetSchemaVersionAsyncModel, AsyncSchemaBuilder
-from .types import APIResponse, Pipeline, PipelineConfigurationVersion, PipelineExecution
+from .models.dataset_schema_version_async import (
+    AsyncSchemaBuilder,
+    DatasetSchemaVersionAsyncModel,
+)
+from .types import (
+    APIResponse,
+    Pipeline,
+    PipelineConfigurationVersion,
+    PipelineExecution,
+)
 
 __all__ = [
     # Main clients
@@ -31,7 +48,7 @@ __all__ = [
     "RetryConfig",
     # Sync Models
     "DatasetModel",
-    "DatasetDataVersionModel", 
+    "DatasetDataVersionModel",
     "DatasetSchemaVersionModel",
     "SchemaBuilder",
     "FileModel",

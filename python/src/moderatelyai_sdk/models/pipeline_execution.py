@@ -199,13 +199,13 @@ class PipelineExecutionModel(BaseModel):
         """
         import json
         import urllib.request
-        
+
         result = self._client._make_request(
             method="GET",
             path=f"/pipeline-executions/{self.execution_id}/output",
             cast_type=dict,
         )
-        
+
         if result.get('type') == 'inline':
             # Output is stored inline in the response
             return result.get('data', {})
@@ -214,17 +214,17 @@ class PipelineExecutionModel(BaseModel):
             download_url = result.get('downloadUrl')
             if not download_url:
                 return None
-                
+
             # Download from presigned S3 URL
             request = urllib.request.Request(download_url)
             with urllib.request.urlopen(request) as response:
                 content = response.read()
-                
+
                 # Check if content is compressed
                 if result.get('metadata', {}).get('compressionType') == 'gzip':
                     import gzip
                     content = gzip.decompress(content)
-                
+
                 # Parse JSON output
                 output_data = json.loads(content.decode('utf-8'))
                 return output_data
@@ -261,26 +261,26 @@ class PipelineExecutionModel(BaseModel):
         """
         if show_progress:
             print("⏳ Waiting for pipeline to complete...")
-        
+
         start_time = time.time()
         last_step = -1
         last_progress_msg = ""
-        
+
         while True:
             time.sleep(poll_interval)
-            
+
             # Get current execution status
             updated_execution = self.refresh()
             status = updated_execution.status
             current_step = updated_execution.current_step or 0
             total_steps = updated_execution.total_steps or 0
             progress_data = updated_execution.progress_data
-            
+
             # Calculate progress percentage
             progress_pct = 0
             if total_steps > 0:
                 progress_pct = (current_step / total_steps) * 100
-            
+
             # Extract progress message from various possible fields
             progress_msg = ""
             if progress_data:
@@ -290,23 +290,23 @@ class PipelineExecutionModel(BaseModel):
                     progress_msg = progress_data["status"]
                 elif "current_block" in progress_data:
                     progress_msg = f"Processing {progress_data['current_block']}"
-            
+
             # Show progress update if something changed
             if show_progress and (current_step != last_step or progress_msg != last_progress_msg):
                 if total_steps > 0:
                     print(f"\n   📊 Progress: Step {current_step}/{total_steps} ({progress_pct:.1f}%)")
                 else:
                     print(f"\n   📊 Status: {status}")
-                
+
                 if progress_msg:
                     print(f"   📝 {progress_msg}")
-                
+
                 last_step = current_step
                 last_progress_msg = progress_msg
             elif show_progress:
                 # Show activity indicator
                 print(".", end="", flush=True)
-            
+
             # Check terminal states
             if status == "completed":
                 if show_progress:
@@ -324,7 +324,7 @@ class PipelineExecutionModel(BaseModel):
                 if show_progress:
                     print("\n   ⚫ Pipeline cancelled!")
                 raise Exception("Pipeline execution was cancelled")
-            
+
             # Check timeout
             if timeout and (time.time() - start_time) > timeout:
                 raise TimeoutError(

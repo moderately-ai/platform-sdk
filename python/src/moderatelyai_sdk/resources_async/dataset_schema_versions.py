@@ -3,13 +3,12 @@
 from typing import Any, Dict, List, Optional
 
 from ..models.dataset_schema_version_async import DatasetSchemaVersionAsyncModel
-from ..types import PaginatedResponse
 from ._base import AsyncBaseResource
 
 
 class AsyncDatasetSchemaVersions(AsyncBaseResource):
     """Async internal resource for dataset schema version operations.
-    
+
     This resource is not exposed in the main client - it's used internally
     by the DatasetAsyncModel to provide schema version functionality.
     """
@@ -47,7 +46,7 @@ class AsyncDatasetSchemaVersions(AsyncBaseResource):
             "orderBy": order_by,
             "orderDirection": order_direction,
         }
-        
+
         if dataset_ids is not None:
             query["datasetIds"] = dataset_ids
         if dataset_schema_version_ids is not None:
@@ -114,7 +113,7 @@ class AsyncDatasetSchemaVersions(AsyncBaseResource):
             "status": status,
             **kwargs,
         }
-        
+
         if parsing_options is not None:
             body["parsingOptions"] = parsing_options
 

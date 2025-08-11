@@ -7,7 +7,7 @@ from ._base_async import BaseAsyncModel
 
 class DatasetSchemaVersionAsyncModel(BaseAsyncModel):
     """Async model representing a dataset schema version.
-    
+
     A schema version defines the structure and data types for a dataset.
     This async model provides access to schema metadata and validation functionality.
     """
@@ -64,17 +64,17 @@ class DatasetSchemaVersionAsyncModel(BaseAsyncModel):
 
 class AsyncSchemaBuilder:
     """Async fluent API builder for creating dataset schema versions.
-    
+
     AsyncSchemaBuilder provides a chainable interface for constructing complex dataset
     schemas with parsing options and validation. It offers the most advanced level
     of schema creation with full control over column properties and data processing.
-    
+
     The builder pattern allows you to:
     - Add columns with detailed specifications
     - Configure parsing options (delimiters, headers, encoding)
     - Set schema status (draft/current)
     - Create the final schema version
-    
+
     Example:
         ```python
         # Build a comprehensive schema
@@ -90,14 +90,14 @@ class AsyncSchemaBuilder:
             )
             .as_current()  # Mark as active schema
             .create())      # Execute the creation (async)
-        
+
         print(f"Created schema version {schema.version_no}")
         ```
     """
 
     def __init__(self, dataset_id: str, client):
         """Initialize async schema builder.
-        
+
         Args:
             dataset_id: The dataset to create schema for.
             client: The async API client instance.
@@ -135,7 +135,7 @@ class AsyncSchemaBuilder:
         type_mapping = {
             "str": "string",
             "int": "integer",
-            "float": "float", 
+            "float": "float",
             "datetime": "datetime",
             "bool": "boolean",
             "date": "datetime",
@@ -190,7 +190,7 @@ class AsyncSchemaBuilder:
 
     def as_draft(self) -> "AsyncSchemaBuilder":
         """Set the schema status to draft.
-        
+
         Returns:
             This builder for method chaining.
         """
@@ -199,7 +199,7 @@ class AsyncSchemaBuilder:
 
     def as_current(self) -> "AsyncSchemaBuilder":
         """Set the schema status to current (active).
-        
+
         Returns:
             This builder for method chaining.
         """
@@ -222,7 +222,7 @@ class AsyncSchemaBuilder:
         # Build request body
         body = {
             "datasetId": self._dataset_id,
-            "columns": self._columns,  # Note: API expects 'columns', not 'columnsJson' 
+            "columns": self._columns,  # Note: API expects 'columns', not 'columnsJson'
             "status": self._status,
         }
 

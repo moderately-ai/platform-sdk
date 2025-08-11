@@ -1,6 +1,5 @@
 """Tests for the AsyncModeratelyAI client."""
 
-import asyncio
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -106,34 +105,34 @@ class TestAsyncModeratelyAI:
 @pytest.mark.asyncio
 async def test_async_dataset_model_rich_operations():
     """Test that async dataset models can be created (basic smoke test)."""
-    from moderatelyai_sdk.models.dataset_async import DatasetAsyncModel
     from moderatelyai_sdk._base_client_async import AsyncBaseClient
-    
+    from moderatelyai_sdk.models.dataset_async import DatasetAsyncModel
+
     # Create a mock client
     mock_client = Mock(spec=AsyncBaseClient)
-    
+
     # Create a dataset model with test data
     test_data = {
         "datasetId": "ds_123",
-        "name": "Test Dataset", 
+        "name": "Test Dataset",
         "teamId": "team_123",
         "createdAt": "2023-01-01T00:00:00Z",
         "updatedAt": "2023-01-01T00:00:00Z"
     }
-    
+
     dataset = DatasetAsyncModel(test_data, mock_client)
-    
+
     # Test properties work
     assert dataset.dataset_id == "ds_123"
     assert dataset.name == "Test Dataset"
     assert dataset.team_id == "team_123"
-    
+
     # Test rich methods exist (we won't call them since they need real async client)
     assert hasattr(dataset, "upload_data")
     assert hasattr(dataset, "download_data")
     assert hasattr(dataset, "create_schema")
     assert hasattr(dataset, "create_schema_from_sample")
-    
+
     # Test async methods are coroutines
     import inspect
     assert inspect.iscoroutinefunction(dataset.upload_data)

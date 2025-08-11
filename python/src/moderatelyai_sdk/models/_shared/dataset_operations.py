@@ -1,7 +1,6 @@
 """Shared dataset operations for both sync and async implementations."""
 
 import hashlib
-import mimetypes
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -11,20 +10,20 @@ class DatasetOperations:
 
     @staticmethod
     def validate_and_prepare_file(
-        file: Union[str, Path, bytes, Any], 
+        file: Union[str, Path, bytes, Any],
         file_type: Optional[str] = None,
         **kwargs: Any
     ) -> Tuple[bytes, str, str, int, str, Optional[int]]:
         """Validate and prepare file for upload.
-        
+
         Args:
             file: The file to upload - can be a path, bytes, or file-like object
             file_type: File type ('csv' or 'xlsx'). Auto-detected if not provided.
             **kwargs: Additional options including filename for bytes input.
-            
+
         Returns:
             Tuple of (file_data, file_name, file_type, file_size, file_hash, row_count)
-            
+
         Raises:
             ValueError: If file is invalid or not found.
         """
@@ -106,7 +105,7 @@ class DatasetOperations:
         order_direction: str = "desc",
     ) -> Dict[str, Any]:
         """Build query parameters for dataset list operations.
-        
+
         Args:
             dataset_ids: Filter by specific dataset IDs.
             name_like: Filter by datasets with names containing this text.
@@ -115,7 +114,7 @@ class DatasetOperations:
             page_size: Number of items per page.
             order_by: Field to sort by.
             order_direction: Sort direction ("asc" or "desc").
-            
+
         Returns:
             Dictionary of query parameters.
         """
@@ -138,13 +137,13 @@ class DatasetOperations:
     @staticmethod
     def validate_schema_columns(columns: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Validate and normalize schema column definitions.
-        
+
         Args:
             columns: List of column definitions.
-            
+
         Returns:
             Validated and normalized column definitions.
-            
+
         Raises:
             ValueError: If column definitions are invalid.
         """
@@ -159,13 +158,13 @@ class DatasetOperations:
         for i, col in enumerate(columns):
             if not isinstance(col, dict):
                 raise ValueError(f"Column {i} must be a dictionary")
-            
+
             if "name" not in col:
                 raise ValueError(f"Column {i} must have a 'name' field")
-            
+
             if "type" not in col:
                 raise ValueError(f"Column {i} ({col['name']}) must have a 'type' field")
-            
+
             if col["type"] not in valid_types:
                 raise ValueError(
                     f"Column {i} ({col['name']}) has invalid type '{col['type']}'. "
@@ -188,18 +187,18 @@ class DatasetOperations:
     @staticmethod
     def infer_schema_from_sample(file_data: bytes, file_type: str, sample_rows: int = 100) -> List[Dict[str, Any]]:
         """Infer schema from sample data (simplified version).
-        
+
         This is a basic implementation. In practice, you might want more sophisticated
         type inference logic.
-        
+
         Args:
             file_data: Raw file data.
             file_type: File type ('csv' or 'xlsx').
             sample_rows: Number of rows to sample for inference.
-            
+
         Returns:
             List of inferred column definitions.
-            
+
         Raises:
             ValueError: If schema cannot be inferred.
         """
@@ -209,7 +208,7 @@ class DatasetOperations:
         try:
             text_data = file_data.decode("utf-8")
             lines = text_data.strip().split("\n")
-            
+
             if len(lines) < 1:
                 raise ValueError("File appears to be empty")
 
@@ -233,9 +232,9 @@ class DatasetOperations:
             return schema_columns
 
         except UnicodeDecodeError as e:
-            raise ValueError(f"Could not decode CSV file: {e}")
+            raise ValueError(f"Could not decode CSV file: {e}") from e
         except Exception as e:
-            raise ValueError(f"Could not infer schema from file: {e}")
+            raise ValueError(f"Could not infer schema from file: {e}") from e
 
     @staticmethod
     def build_create_data_version_body(
@@ -245,13 +244,13 @@ class DatasetOperations:
         status: str = "current",
     ) -> Dict[str, Any]:
         """Build request body for creating a data version.
-        
+
         Args:
             dataset_id: ID of the dataset.
             file_name: Name of the file being uploaded.
             file_type: Type of file ('csv' or 'xlsx').
             status: Version status ('draft' or 'current').
-            
+
         Returns:
             Request body dictionary.
         """
