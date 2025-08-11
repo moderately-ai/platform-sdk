@@ -1,6 +1,6 @@
 """Moderately AI Python SDK - First-class API client for the Moderately AI platform."""
 
-__version__ = "0.2.3"
+__version__ = "0.2.4"
 __author__ = "Moderately AI"
 __email__ = "sdk@moderately.ai"
 
