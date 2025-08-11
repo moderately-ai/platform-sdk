@@ -299,6 +299,24 @@ client = ModeratelyAI(
 )
 ```
 
+## Examples
+
+Complete working examples are available in the `examples/` directory:
+
+- **[File Operations](examples/01-file-operations/)** - Complete file upload, download, and management workflows
+  - `main.py` - Synchronous file operations example  
+  - `main_async.py` - Asynchronous file operations example
+  - Demonstrates upload, list, download, and delete operations
+  - Shows both FileModel and resource-level approaches
+  - Includes REST API to SDK method mappings
+
+To run the examples:
+```bash
+cd examples/01-file-operations
+dotenvx run -- python main.py        # Sync version
+dotenvx run -- python main_async.py  # Async version
+```
+
 ## Development
 
 This project uses PDM for dependency management. To set up the development environment:
