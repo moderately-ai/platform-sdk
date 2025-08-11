@@ -331,8 +331,9 @@ class DatasetAsyncModel(BaseAsyncModel):
             cast_type=dict,
         )
 
-        data_version_id = create_response["datasetDataVersionId"]
+        data_version_data = create_response["dataVersion"]
         upload_url = create_response["uploadUrl"]
+        data_version_id = data_version_data["datasetDataVersionId"]
 
         # Step 3: Upload the file to the presigned URL (async)
         try:
@@ -525,24 +526,19 @@ class DatasetAsyncModel(BaseAsyncModel):
         self,
         columns: List[Dict[str, Any]],
         *,
-        parsing_config: Optional[Dict[str, Any]] = None,
-        as_current: bool = True,
-        **kwargs: Any,
+        status: str = "draft",
+        parsing_options: Optional[Dict[str, Any]] = None,
     ) -> "DatasetSchemaVersionAsyncModel":
-        """Create a new schema version for this dataset (async).
+        """Create a schema version with simple column definitions (async).
 
         Args:
-            columns: List of column definitions. Each column should have:
-                    - name: Column name (required)
-                    - type: Data type (required) - one of: string, int, float, boolean, datetime, date, time
-                    - required: Whether the column is required (optional, default: False)
-                    - description: Column description (optional)
-            parsing_config: Optional parsing configuration for CSV files:
-                          - delimiter: CSV delimiter (default: ",")
-                          - quote_char: Quote character (default: '"')
-                          - header_row: Header row number (default: 1)
-            as_current: Whether to set this schema as the current one (default: True).
-            **kwargs: Additional schema properties.
+            columns: List of column definitions. Each dict should have:
+                     - name: Column name (required)
+                     - type: Column type (required) - 'string', 'int', 'float', 'datetime', 'bool'
+                     - required: Whether column is required (optional, defaults to True)
+                     - description: Column description (optional)
+            status: Initial status ('draft' or 'current'). Defaults to 'draft'.
+            parsing_options: Optional parsing configuration (delimiter, header_row, etc.)
 
         Returns:
             The created schema version model.
@@ -551,45 +547,64 @@ class DatasetAsyncModel(BaseAsyncModel):
             ValueError: If column definitions are invalid.
             APIError: If schema creation fails.
         """
-        from .dataset_schema_version_async import DatasetSchemaVersionAsyncModel
+        # Convert simple column definitions to full API format (same as sync version)
+        api_columns = []
+        for i, col in enumerate(columns, 1):
+            if "name" not in col or "type" not in col:
+                raise ValueError("Each column must have 'name' and 'type' fields")
 
-        # Validate columns using shared logic
-        validated_columns = DatasetOperations.validate_schema_columns(columns)
+            # Convert user-friendly types to API types (same mapping as sync version)
+            type_mapping = {
+                "str": "string",
+                "int": "integer", 
+                "float": "float",
+                "datetime": "datetime",
+                "bool": "boolean",
+                "date": "datetime",
+            }
+            api_type = type_mapping.get(col["type"], col["type"])
 
-        body = {
-            "datasetId": self.dataset_id,
-            "columns": validated_columns,
-            "asCurrent": as_current,
-            **kwargs,
-        }
+            api_column = {
+                "pos": i,
+                "name": col["name"],
+                "type": api_type,
+                "nullable": not col.get("required", True),
+            }
 
-        if parsing_config is not None:
-            body["parsingConfig"] = parsing_config
+            if "description" in col:
+                api_column["description"] = col["description"]
 
-        schema_data = await self._client._request(
-            method="POST",
-            path="/dataset-schema-versions",
-            body=body,
-            cast_type=dict,
+            api_columns.append(api_column)
+
+        # Import here to avoid circular imports
+        from ..resources_async.dataset_schema_versions import AsyncDatasetSchemaVersions
+
+        # Create using internal async resource (same pattern as sync version)
+        schema_versions = AsyncDatasetSchemaVersions(self._client)
+        return await schema_versions.create(
+            dataset_id=self.dataset_id,
+            columns=api_columns,
+            status=status,
+            parsing_options=parsing_options,
         )
-
-        return DatasetSchemaVersionAsyncModel(schema_data, self._client)
 
     async def create_schema_from_sample(
         self,
         sample_file: Union[str, Path, bytes],
         *,
-        sample_rows: int = 100,
-        as_current: bool = True,
-        **kwargs: Any,
+        status: str = "draft",
+        header_row: int = 1,
+        sample_size: int = 100,
     ) -> "DatasetSchemaVersionAsyncModel":
-        """Create a schema by inferring from sample data (async).
+        """Create a schema by analyzing a sample data file (async).
 
         Args:
-            sample_file: Sample data file to infer schema from.
-            sample_rows: Number of rows to use for inference (default: 100).
-            as_current: Whether to set this schema as the current one (default: True).
-            **kwargs: Additional schema properties.
+            sample_file: Sample data to analyze. Can be:
+                        - str/Path: Path to CSV file  
+                        - bytes: Raw CSV data as bytes
+            status: Initial status ('draft' or 'current'). Defaults to 'draft'.
+            header_row: Row containing column headers (1-based). Defaults to 1.
+            sample_size: Number of rows to sample for type inference. Defaults to 100.
 
         Returns:
             The created schema version model.
@@ -600,19 +615,18 @@ class DatasetAsyncModel(BaseAsyncModel):
         """
         # Prepare sample file
         file_data, file_name, file_type, _, _, _ = DatasetOperations.validate_and_prepare_file(
-            sample_file, **kwargs
+            sample_file
         )
 
         # Infer schema using shared logic
         inferred_columns = DatasetOperations.infer_schema_from_sample(
-            file_data, file_type, sample_rows
+            file_data, file_type, sample_size
         )
 
         # Create schema with inferred columns
         return await self.create_schema(
             columns=inferred_columns,
-            as_current=as_current,
-            **kwargs,
+            status=status,
         )
 
     def schema_builder(self) -> "AsyncSchemaBuilder":

@@ -37,6 +37,7 @@ import httpx
 
 from ..exceptions import APIError
 from ._base import BaseModel
+from ._shared.dataset_operations import DatasetOperations
 
 if TYPE_CHECKING:
     from .dataset_schema import DatasetSchemaVersionModel, SchemaBuilder
@@ -648,7 +649,7 @@ class DatasetModel(BaseModel):
 
     def create_schema_from_sample(
         self,
-        sample_file: Union[str, Path],
+        sample_file: Union[str, Path, bytes],
         *,
         status: str = "draft",
         header_row: int = 1,
@@ -657,7 +658,9 @@ class DatasetModel(BaseModel):
         """Create a schema by analyzing a sample data file.
 
         Args:
-            sample_file: Path to sample data file (CSV only for now).
+            sample_file: Sample data to analyze. Can be:
+                        - str/Path: Path to CSV file  
+                        - bytes: Raw CSV data as bytes
             status: Initial status ('draft' or 'current'). Defaults to 'draft'.
             header_row: Row containing column headers (1-based). Defaults to 1.
             sample_size: Number of rows to sample for type inference. Defaults to 100.
@@ -668,76 +671,20 @@ class DatasetModel(BaseModel):
         Raises:
             ValueError: If file format is not supported or file is invalid.
         """
+        # Prepare sample file using shared logic
+        file_data, file_name, file_type, _, _, _ = DatasetOperations.validate_and_prepare_file(
+            sample_file
+        )
 
-        file_path = Path(sample_file)
-        if not file_path.exists():
-            raise ValueError(f"Sample file not found: {file_path}")
+        # Infer schema using shared logic
+        inferred_columns = DatasetOperations.infer_schema_from_sample(
+            file_data, file_type, sample_size
+        )
 
-        if file_path.suffix.lower() != ".csv":
-            raise ValueError("Only CSV files are currently supported for auto-inference")
-
-        # Read and analyze the CSV
-        with open(file_path, encoding='utf-8') as f:
-            # Detect delimiter
-            sample = f.read(1024)
-            f.seek(0)
-
-            sniffer = csv.Sniffer()
-            try:
-                dialect = sniffer.sniff(sample)
-                delimiter = dialect.delimiter
-            except csv.Error:
-                delimiter = ","  # Default fallback
-
-            reader = csv.reader(f, delimiter=delimiter)
-
-            # Skip to header row (1-based to 0-based)
-            for _ in range(header_row - 1):
-                next(reader, None)
-
-            # Get headers
-            try:
-                headers = next(reader)
-            except StopIteration as e:
-                raise ValueError("Could not read headers from file") from e
-
-            # Sample data for type inference
-            sample_rows = []
-            for i, row in enumerate(reader):
-                if i >= sample_size:
-                    break
-                sample_rows.append(row)
-
-        if not sample_rows:
-            raise ValueError("No data rows found for type inference")
-
-        # Infer column types
-        columns = []
-        for i, header in enumerate(headers):
-            column_values = [row[i] if i < len(row) else "" for row in sample_rows]
-            column_values = [v.strip() for v in column_values if v.strip()]  # Remove empty values
-
-            inferred_type = self._infer_column_type(column_values)
-            has_nulls = len(column_values) < len(sample_rows)
-
-            columns.append({
-                "name": header.strip(),
-                "type": inferred_type,
-                "required": not has_nulls,
-                "description": f"Auto-inferred as {inferred_type}",
-            })
-
-        # Create parsing options
-        parsing_options = {
-            "delimiter": delimiter,
-            "headerRow": header_row,
-            "encoding": "utf-8",
-        }
-
+        # Create schema with inferred columns
         return self.create_schema(
-            columns=columns,
+            columns=inferred_columns,
             status=status,
-            parsing_options=parsing_options,
         )
 
     def _infer_column_type(self, values: List[str]) -> str:

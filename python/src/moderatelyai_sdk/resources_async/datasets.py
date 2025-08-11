@@ -170,6 +170,7 @@ class AsyncDatasets(AsyncBaseResource):
         *,
         name: Optional[str] = None,
         description: Optional[str] = None,
+        should_process: Optional[bool] = None,
         **kwargs,
     ) -> "DatasetAsyncModel":
         """Update an existing dataset (async).
@@ -178,6 +179,7 @@ class AsyncDatasets(AsyncBaseResource):
             dataset_id: The ID of the dataset to update.
             name: New dataset name.
             description: New dataset description.
+            should_process: Whether to trigger dataset processing workflow.
             **kwargs: Additional properties to update.
 
         Returns:
@@ -194,6 +196,8 @@ class AsyncDatasets(AsyncBaseResource):
             body["name"] = name
         if description is not None:
             body["description"] = description
+        if should_process is not None:
+            body["shouldProcess"] = should_process
 
         data = await self._patch(f"/datasets/{dataset_id}", body=body)
         return DatasetAsyncModel(data, self._client)

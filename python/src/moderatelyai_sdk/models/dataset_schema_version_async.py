@@ -30,7 +30,7 @@ class DatasetSchemaVersionAsyncModel(BaseAsyncModel):
     @property
     def columns(self) -> List[Dict[str, Any]]:
         """The column definitions for this schema."""
-        return self._data.get("columns", [])
+        return self._data.get("columnsJson", [])
 
     @property
     def parsing_config(self) -> Optional[Dict[str, Any]]:
@@ -38,6 +38,11 @@ class DatasetSchemaVersionAsyncModel(BaseAsyncModel):
         return self._data.get("parsingConfig")
 
     @property
+    def status(self) -> str:
+        """The status of this schema version (draft, current, archived)."""
+        return self._data["status"]
+
+    @property 
     def is_current(self) -> bool:
         """Whether this is the current schema version."""
         return self._data.get("isCurrent", False)
