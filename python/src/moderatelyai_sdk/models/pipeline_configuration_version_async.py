@@ -1,36 +1,36 @@
-"""Pipeline configuration version model for the Moderately AI SDK."""
+"""Async pipeline configuration version model for the Moderately AI SDK."""
 
 from typing import Any, Dict, List, Optional
 
-from .._base_client import BaseClient
+from .._base_client_async import AsyncBaseClient
 from ..types import PipelineConfigurationVersion
-from ._base import BaseModel
+from ._base_async import BaseAsyncModel
 
 
-class PipelineConfigurationVersionModel(BaseModel):
-    """Rich pipeline configuration version model with convenient methods.
+class PipelineConfigurationVersionAsyncModel(BaseAsyncModel):
+    """Rich async pipeline configuration version model with convenient methods.
 
     Provides an object-oriented interface for working with pipeline configuration
-    versions, including updating configurations, validation, cloning, and execution.
+    versions asynchronously, including updating configurations, validation, cloning, and execution.
 
     Examples:
         ```python
         # Get configuration version and execute it
-        config_version = client.pipeline_configuration_versions.retrieve("version_123")
-        execution = config_version.execute(
+        config_version = await client.pipeline_configuration_versions.retrieve("version_123")
+        execution = await config_version.execute(
             pipeline_input={"documents": ["doc1.pdf"]},
             pipeline_input_summary="Process document"
         )
 
         # Clone and modify a configuration
-        new_version = config_version.clone()
+        new_version = await config_version.clone()
         updated_config = new_version.configuration.copy()
         updated_config["blocks"]["llm"]["config"]["temperature"] = 0.5
-        new_version = new_version.update(configuration=updated_config)
+        new_version = await new_version.update(configuration=updated_config)
         ```
     """
 
-    def __init__(self, data: PipelineConfigurationVersion, client: BaseClient) -> None:
+    def __init__(self, data: PipelineConfigurationVersion, client: AsyncBaseClient) -> None:
         super().__init__(data, client)
 
     @property
@@ -68,64 +68,64 @@ class PipelineConfigurationVersionModel(BaseModel):
         """The version string for this configuration."""
         return self._data.get("version")
 
-    def update(
+    async def update(
         self,
         *,
         configuration: Optional[Dict[str, Any]] = None,
         **kwargs
-    ) -> "PipelineConfigurationVersionModel":
-        """Update this configuration version and return the updated instance.
+    ) -> "PipelineConfigurationVersionAsyncModel":
+        """Update this configuration version and return the updated instance (async).
 
         Args:
             configuration: New configuration object.
             **kwargs: Additional properties to update.
 
         Returns:
-            Updated configuration version model instance.
+            Updated async configuration version model instance.
         """
         body = {**kwargs}
         if configuration is not None:
             body["configuration"] = configuration
 
-        updated_data = self._client._request(
+        updated_data = await self._client._request(
             method="PATCH",
             path=f"/pipeline-configuration-versions/{self.configuration_version_id}",
             cast_type=dict,
             body=body
         )
-        return PipelineConfigurationVersionModel(updated_data, self._client)
+        return PipelineConfigurationVersionAsyncModel(updated_data, self._client)
 
-    def delete(self) -> None:
-        """Delete this configuration version.
+    async def delete(self) -> None:
+        """Delete this configuration version (async).
 
         Warning: This will permanently delete the configuration version.
         Any executions using this version will still retain their results.
         """
-        self._client._request(
+        await self._client._request(
             method="DELETE",
             path=f"/pipeline-configuration-versions/{self.configuration_version_id}",
             cast_type=dict,
         )
 
-    def clone(self) -> "PipelineConfigurationVersionModel":
-        """Clone this configuration version.
+    async def clone(self) -> "PipelineConfigurationVersionAsyncModel":
+        """Clone this configuration version (async).
 
         Creates a new configuration version by copying this one. The cloned
         version will have a new ID, incremented version number, and draft status.
 
         Returns:
-            Newly created configuration version model.
+            Newly created async configuration version model.
         """
-        cloned_data = self._client._request(
+        cloned_data = await self._client._request(
             method="POST",
             path=f"/pipeline-configuration-versions/{self.configuration_version_id}/clone",
             cast_type=dict,
             body={}
         )
-        return PipelineConfigurationVersionModel(cloned_data, self._client)
+        return PipelineConfigurationVersionAsyncModel(cloned_data, self._client)
 
-    def validate(self) -> Dict[str, Any]:
-        """Validate this configuration version.
+    async def validate(self) -> Dict[str, Any]:
+        """Validate this configuration version (async).
 
         Validates the configuration against the JSON Schema and business logic
         rules without creating a new version.
@@ -133,14 +133,14 @@ class PipelineConfigurationVersionModel(BaseModel):
         Returns:
             Validation results with valid flag, errors, warnings, and schemas.
         """
-        return self._client._request(
+        return await self._client._request(
             method="POST",
             path="/pipeline-configuration-versions/validate",
             cast_type=dict,
             body={"configuration": self.configuration}
         )
 
-    def execute(
+    async def execute(
         self,
         *,
         pipeline_input: Dict[str, Any],
@@ -151,7 +151,7 @@ class PipelineConfigurationVersionModel(BaseModel):
         show_progress: bool = True,
         **kwargs
     ):
-        """Execute this configuration version.
+        """Execute this configuration version (async).
 
         This is a convenience method that creates a pipeline execution using
         this configuration version.
@@ -166,19 +166,19 @@ class PipelineConfigurationVersionModel(BaseModel):
             **kwargs: Additional execution properties.
 
         Returns:
-            Pipeline execution model. If block=False, returns immediately.
+            Async pipeline execution model. If block=False, returns immediately.
             If block=True, returns when execution completes.
 
         Examples:
             ```python
             # Non-blocking execution
-            execution = config_version.execute(
+            execution = await config_version.execute(
                 pipeline_input={"documents": ["doc1.pdf"]},
                 pipeline_input_summary="Process document"
             )
 
             # Blocking execution with timeout
-            execution = config_version.execute(
+            execution = await config_version.execute(
                 pipeline_input={"documents": ["doc1.pdf"]},
                 pipeline_input_summary="Process document",
                 block=True,
@@ -186,10 +186,10 @@ class PipelineConfigurationVersionModel(BaseModel):
             )
             ```
         """
-        from .pipeline_execution import PipelineExecutionModel
+        from .pipeline_execution_async import PipelineExecutionAsyncModel
 
         # Create the execution
-        execution_data = self._client._request(
+        execution_data = await self._client._request(
             method="POST",
             path="/pipeline-executions",
             cast_type=dict,
@@ -201,20 +201,20 @@ class PipelineConfigurationVersionModel(BaseModel):
             }
         )
 
-        execution = PipelineExecutionModel(execution_data, self._client)
+        execution = PipelineExecutionAsyncModel(execution_data, self._client)
 
         # If not blocking, return immediately
         if not block:
             return execution
 
         # Block and poll until completion
-        return execution.wait_for_completion(
+        return await execution.wait_for_completion(
             timeout=timeout,
             poll_interval=poll_interval,
             show_progress=show_progress
         )
 
-    def list_executions(
+    async def list_executions(
         self,
         *,
         status: Optional[str] = None,
@@ -222,7 +222,7 @@ class PipelineConfigurationVersionModel(BaseModel):
         page: int = 1,
         page_size: int = 10
     ):
-        """Get executions that used this configuration version.
+        """Get executions that used this configuration version (async).
 
         Args:
             status: Filter by single execution status.
@@ -231,9 +231,9 @@ class PipelineConfigurationVersionModel(BaseModel):
             page_size: Number of items per page.
 
         Returns:
-            List of execution models.
+            List of async execution models.
         """
-        from .pipeline_execution import PipelineExecutionModel
+        from .pipeline_execution_async import PipelineExecutionAsyncModel
 
         query = {
             "pipelineConfigurationVersionIds": self.configuration_version_id,
@@ -245,7 +245,7 @@ class PipelineConfigurationVersionModel(BaseModel):
         if statuses:
             query["statuses"] = ",".join(statuses)
 
-        response = self._client._request(
+        response = await self._client._request(
             method="GET",
             path="/pipeline-executions",
             cast_type=dict,
@@ -253,33 +253,42 @@ class PipelineConfigurationVersionModel(BaseModel):
         )
 
         return [
-            PipelineExecutionModel(item, self._client)
+            PipelineExecutionAsyncModel(item, self._client)
             for item in response.get("items", [])
         ]
 
-    def get_pipeline(self):
-        """Get the parent pipeline for this configuration version.
+    async def get_pipeline(self):
+        """Get the parent pipeline for this configuration version (async).
 
         Returns:
-            Pipeline model instance.
+            Async pipeline model instance.
         """
-        from .pipeline import PipelineModel
+        from .pipeline_async import PipelineAsyncModel
 
-        pipeline_data = self._client._request(
+        pipeline_data = await self._client._request(
             method="GET",
             path=f"/pipelines/{self.pipeline_id}",
             cast_type=dict,
         )
-        return PipelineModel(pipeline_data, self._client)
+        return PipelineAsyncModel(pipeline_data, self._client)
 
-    def get_latest_execution(self):
-        """Get the most recent execution using this configuration version.
+    async def get_latest_execution(self):
+        """Get the most recent execution using this configuration version (async).
 
         Returns:
-            Latest execution model or None if no executions exist.
+            Latest async execution model or None if no executions exist.
         """
-        executions = self.list_executions(page_size=1)
+        executions = await self.list_executions(page_size=1)
         return executions[0] if executions else None
 
+    async def _refresh(self) -> None:
+        """Refresh this configuration version from the API."""
+        fresh_data = await self._client._request(
+            method="GET",
+            path=f"/pipeline-configuration-versions/{self.configuration_version_id}",
+            cast_type=dict,
+        )
+        self._data = fresh_data
+
     def __repr__(self) -> str:
-        return f"PipelineConfigurationVersionModel(id='{self.configuration_version_id}', pipeline_id='{self.pipeline_id}')"
+        return f"PipelineConfigurationVersionAsyncModel(id='{self.configuration_version_id}', pipeline_id='{self.pipeline_id}')"

@@ -1,30 +1,30 @@
-"""Pipeline model for the Moderately AI SDK."""
+"""Async pipeline model for the Moderately AI SDK."""
 
 from typing import Any, Dict, List, Optional
 
-from .._base_client import BaseClient
+from .._base_client_async import AsyncBaseClient
 from ..types import Pipeline
-from ._base import BaseModel
+from ._base_async import BaseAsyncModel
 
 
-class PipelineModel(BaseModel):
-    """Rich pipeline model with convenient methods for pipeline management.
+class PipelineAsyncModel(BaseAsyncModel):
+    """Rich async pipeline model with convenient methods for pipeline management.
 
-    Provides an object-oriented interface for working with pipelines,
+    Provides an object-oriented interface for working with pipelines asynchronously,
     including creating configurations, executing pipelines, and monitoring results.
 
     Examples:
         ```python
         # Get pipeline and execute it (non-blocking)
-        pipeline = client.pipelines.retrieve("pipeline_123")
-        execution = pipeline.execute(
+        pipeline = await client.pipelines.retrieve("pipeline_123")
+        execution = await pipeline.execute(
             configuration_version_id="version_123",
             pipeline_input={"documents": ["doc1.pdf"]},
             pipeline_input_summary="Process document"
         )
 
         # Execute and block until completion
-        execution = pipeline.execute(
+        execution = await pipeline.execute(
             configuration_version_id="version_123",
             pipeline_input={"documents": ["doc1.pdf"]},
             pipeline_input_summary="Process document",
@@ -35,7 +35,7 @@ class PipelineModel(BaseModel):
         ```
     """
 
-    def __init__(self, data: Pipeline, client: BaseClient) -> None:
+    def __init__(self, data: Pipeline, client: AsyncBaseClient) -> None:
         super().__init__(data, client)
 
     @property
@@ -88,14 +88,14 @@ class PipelineModel(BaseModel):
         """Success rate (0.0 to 1.0) for pipeline executions."""
         return self._data.get("successRate", 0.0)
 
-    def update(
+    async def update(
         self,
         *,
         name: Optional[str] = None,
         description: Optional[str] = None,
         **kwargs
-    ) -> "PipelineModel":
-        """Update this pipeline and return the updated instance.
+    ) -> "PipelineAsyncModel":
+        """Update this pipeline and return the updated instance (async).
 
         Args:
             name: New pipeline name.
@@ -105,7 +105,7 @@ class PipelineModel(BaseModel):
         Returns:
             Updated pipeline model instance.
         """
-        updated_data = self._client._request(
+        updated_data = await self._client._request(
             method="PATCH",
             path=f"/pipelines/{self.pipeline_id}",
             cast_type=dict,
@@ -117,38 +117,38 @@ class PipelineModel(BaseModel):
                 }.items() if v is not None
             }
         )
-        return PipelineModel(updated_data, self._client)
+        return PipelineAsyncModel(updated_data, self._client)
 
-    def delete(self) -> None:
-        """Delete this pipeline.
+    async def delete(self) -> None:
+        """Delete this pipeline (async).
 
         Warning: This will permanently delete the pipeline and all associated
         configuration versions and executions.
         """
-        self._client._request(
+        await self._client._request(
             method="DELETE",
             path=f"/pipelines/{self.pipeline_id}",
             cast_type=dict,
         )
 
-    def create_configuration_version(
+    async def create_configuration_version(
         self,
         *,
         configuration: Dict[str, Any],
         **kwargs
     ):
-        """Create a new configuration version for this pipeline.
+        """Create a new configuration version for this pipeline (async).
 
         Args:
             configuration: The pipeline configuration object with blocks and connections.
             **kwargs: Additional configuration version properties.
 
         Returns:
-            The created configuration version model.
+            The created async configuration version model.
         """
-        from .pipeline_configuration_version import PipelineConfigurationVersionModel
+        from .pipeline_configuration_version_async import PipelineConfigurationVersionAsyncModel
 
-        data = self._client._request(
+        data = await self._client._request(
             method="POST",
             path="/pipeline-configuration-versions",
             cast_type=dict,
@@ -158,17 +158,17 @@ class PipelineModel(BaseModel):
                 **kwargs
             }
         )
-        return PipelineConfigurationVersionModel(data, self._client)
+        return PipelineConfigurationVersionAsyncModel(data, self._client)
 
-    def list_configuration_versions(self):
-        """Get all configuration versions for this pipeline.
+    async def list_configuration_versions(self):
+        """Get all configuration versions for this pipeline (async).
 
         Returns:
-            List of configuration version models.
+            List of async configuration version models.
         """
-        from .pipeline_configuration_version import PipelineConfigurationVersionModel
+        from .pipeline_configuration_version_async import PipelineConfigurationVersionAsyncModel
 
-        response = self._client._request(
+        response = await self._client._request(
             method="GET",
             path="/pipeline-configuration-versions",
             cast_type=dict,
@@ -176,11 +176,11 @@ class PipelineModel(BaseModel):
         )
 
         return [
-            PipelineConfigurationVersionModel(item, self._client)
+            PipelineConfigurationVersionAsyncModel(item, self._client)
             for item in response.get("items", [])
         ]
 
-    def list_executions(
+    async def list_executions(
         self,
         *,
         status: Optional[str] = None,
@@ -188,7 +188,7 @@ class PipelineModel(BaseModel):
         page: int = 1,
         page_size: int = 10
     ):
-        """Get executions for this pipeline.
+        """Get executions for this pipeline (async).
 
         Args:
             status: Filter by single execution status.
@@ -197,9 +197,9 @@ class PipelineModel(BaseModel):
             page_size: Number of items per page.
 
         Returns:
-            List of execution models.
+            List of async execution models.
         """
-        from .pipeline_execution import PipelineExecutionModel
+        from .pipeline_execution_async import PipelineExecutionAsyncModel
 
         query = {
             "pipelineIds": self.pipeline_id,
@@ -211,7 +211,7 @@ class PipelineModel(BaseModel):
         if statuses:
             query["statuses"] = ",".join(statuses)
 
-        response = self._client._request(
+        response = await self._client._request(
             method="GET",
             path="/pipeline-executions",
             cast_type=dict,
@@ -219,20 +219,20 @@ class PipelineModel(BaseModel):
         )
 
         return [
-            PipelineExecutionModel(item, self._client)
+            PipelineExecutionAsyncModel(item, self._client)
             for item in response.get("items", [])
         ]
 
-    def get_latest_execution(self):
-        """Get the most recent execution for this pipeline.
+    async def get_latest_execution(self):
+        """Get the most recent execution for this pipeline (async).
 
         Returns:
-            Latest execution model or None if no executions exist.
+            Latest async execution model or None if no executions exist.
         """
-        executions = self.list_executions(page_size=1)
+        executions = await self.list_executions(page_size=1)
         return executions[0] if executions else None
 
-    def execute(
+    async def execute(
         self,
         *,
         configuration_version_id: str,
@@ -244,7 +244,7 @@ class PipelineModel(BaseModel):
         show_progress: bool = True,
         **kwargs
     ):
-        """Execute this pipeline with the given configuration and input.
+        """Execute this pipeline with the given configuration and input (async).
 
         This is the main convenience method that provides both non-blocking and
         blocking execution modes. When block=True, it follows the polling pattern
@@ -261,7 +261,7 @@ class PipelineModel(BaseModel):
             **kwargs: Additional execution properties.
 
         Returns:
-            Pipeline execution model. If block=False, returns immediately with
+            Async pipeline execution model. If block=False, returns immediately with
             pending/running execution. If block=True, returns completed execution.
 
         Raises:
@@ -271,7 +271,7 @@ class PipelineModel(BaseModel):
         Examples:
             ```python
             # Non-blocking execution (default)
-            execution = pipeline.execute(
+            execution = await pipeline.execute(
                 configuration_version_id="version_123",
                 pipeline_input={"documents": ["doc1.pdf"]},
                 pipeline_input_summary="Process document"
@@ -279,7 +279,7 @@ class PipelineModel(BaseModel):
             print(f"Started execution: {execution.execution_id}")
 
             # Blocking execution with timeout
-            execution = pipeline.execute(
+            execution = await pipeline.execute(
                 configuration_version_id="version_123",
                 pipeline_input={"documents": ["doc1.pdf"]},
                 pipeline_input_summary="Process document",
@@ -288,14 +288,14 @@ class PipelineModel(BaseModel):
                 poll_interval=3.0
             )
             if execution.is_completed:
-                results = execution.get_output()
+                results = await execution.get_output()
                 print(f"Success! Results: {results}")
             ```
         """
-        from .pipeline_execution import PipelineExecutionModel
+        from .pipeline_execution_async import PipelineExecutionAsyncModel
 
         # Create the execution
-        execution_data = self._client._request(
+        execution_data = await self._client._request(
             method="POST",
             path="/pipeline-executions",
             cast_type=dict,
@@ -307,18 +307,27 @@ class PipelineModel(BaseModel):
             }
         )
 
-        execution = PipelineExecutionModel(execution_data, self._client)
+        execution = PipelineExecutionAsyncModel(execution_data, self._client)
 
         # If not blocking, return immediately
         if not block:
             return execution
 
         # Block and poll until completion using the execution model's wait method
-        return execution.wait_for_completion(
+        return await execution.wait_for_completion(
             timeout=timeout,
             poll_interval=poll_interval,
             show_progress=show_progress
         )
 
+    async def _refresh(self) -> None:
+        """Refresh this pipeline from the API."""
+        fresh_data = await self._client._request(
+            method="GET",
+            path=f"/pipelines/{self.pipeline_id}",
+            cast_type=dict,
+        )
+        self._data = fresh_data
+
     def __repr__(self) -> str:
-        return f"PipelineModel(id='{self.pipeline_id}', name='{self.name}')"
+        return f"PipelineAsyncModel(id='{self.pipeline_id}', name='{self.name}')"

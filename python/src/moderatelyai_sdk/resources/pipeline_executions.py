@@ -92,9 +92,18 @@ class PipelineExecutions(BaseResource):
         if order_by is not None:
             query["orderBy"] = order_by
 
-        return self._get("/pipeline-executions", options={"query": query})
+        response = self._get("/pipeline-executions", options={"query": query})
 
-    def retrieve(self, pipeline_execution_id: str) -> PipelineExecution:
+        # Convert execution items to rich models
+        if "items" in response:
+            from ..models.pipeline_execution import PipelineExecutionModel
+            response["items"] = [
+                PipelineExecutionModel(item, self._client) for item in response["items"]
+            ]
+
+        return response
+
+    def retrieve(self, pipeline_execution_id: str):
         """Retrieve a specific pipeline execution by ID.
 
         Args:
@@ -106,7 +115,9 @@ class PipelineExecutions(BaseResource):
         Raises:
             NotFoundError: If the execution doesn't exist.
         """
-        return self._get(f"/pipeline-executions/{pipeline_execution_id}")
+        execution_data = self._get(f"/pipeline-executions/{pipeline_execution_id}")
+        from ..models.pipeline_execution import PipelineExecutionModel
+        return PipelineExecutionModel(execution_data, self._client)
 
     def create(
         self,
@@ -147,7 +158,9 @@ class PipelineExecutions(BaseResource):
         if total_steps is not None:
             body["totalSteps"] = total_steps
 
-        return self._post("/pipeline-executions", body=body)
+        execution_data = self._post("/pipeline-executions", body=body)
+        from ..models.pipeline_execution import PipelineExecutionModel
+        return PipelineExecutionModel(execution_data, self._client)
 
     def update(
         self,

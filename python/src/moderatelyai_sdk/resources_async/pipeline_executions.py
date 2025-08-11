@@ -2,7 +2,8 @@
 
 from typing import Any, Dict, List, Optional
 
-from ..types import PaginatedResponse, PipelineExecution
+from ..models.pipeline_execution_async import PipelineExecutionAsyncModel
+from ..types import PaginatedResponse
 from ._base import AsyncBaseResource
 
 
@@ -92,9 +93,17 @@ class AsyncPipelineExecutions(AsyncBaseResource):
         if order_by is not None:
             query["orderBy"] = order_by
 
-        return await self._get("/pipeline-executions", options={"query": query})
+        response = await self._get("/pipeline-executions", options={"query": query})
 
-    async def retrieve(self, pipeline_execution_id: str) -> PipelineExecution:
+        # Convert execution items to rich async models
+        if "items" in response:
+            response["items"] = [
+                PipelineExecutionAsyncModel(item, self._client) for item in response["items"]
+            ]
+
+        return response
+
+    async def retrieve(self, pipeline_execution_id: str) -> PipelineExecutionAsyncModel:
         """Retrieve a specific pipeline execution by ID (async).
 
         Args:
@@ -106,7 +115,8 @@ class AsyncPipelineExecutions(AsyncBaseResource):
         Raises:
             NotFoundError: If the execution doesn't exist.
         """
-        return await self._get(f"/pipeline-executions/{pipeline_execution_id}")
+        execution_data = await self._get(f"/pipeline-executions/{pipeline_execution_id}")
+        return PipelineExecutionAsyncModel(execution_data, self._client)
 
     async def create(
         self,
@@ -117,7 +127,7 @@ class AsyncPipelineExecutions(AsyncBaseResource):
         current_step: Optional[int] = None,
         total_steps: Optional[int] = None,
         **kwargs,
-    ) -> PipelineExecution:
+    ) -> PipelineExecutionAsyncModel:
         """Create a new pipeline execution (async).
 
         Args:
@@ -147,7 +157,8 @@ class AsyncPipelineExecutions(AsyncBaseResource):
         if total_steps is not None:
             body["totalSteps"] = total_steps
 
-        return await self._post("/pipeline-executions", body=body)
+        execution_data = await self._post("/pipeline-executions", body=body)
+        return PipelineExecutionAsyncModel(execution_data, self._client)
 
     async def update(
         self,
@@ -165,7 +176,7 @@ class AsyncPipelineExecutions(AsyncBaseResource):
         cancelled_at: Optional[str] = None,
         paused_at: Optional[str] = None,
         **kwargs,
-    ) -> PipelineExecution:
+    ) -> PipelineExecutionAsyncModel:
         """Update an existing pipeline execution (async).
 
         Used by workers to report execution progress and results.
@@ -217,14 +228,15 @@ class AsyncPipelineExecutions(AsyncBaseResource):
         if paused_at is not None:
             body["pausedAt"] = paused_at
 
-        return await self._patch(f"/pipeline-executions/{pipeline_execution_id}", body=body)
+        execution_data = await self._patch(f"/pipeline-executions/{pipeline_execution_id}", body=body)
+        return PipelineExecutionAsyncModel(execution_data, self._client)
 
     async def cancel(
         self,
         pipeline_execution_id: str,
         *,
         reason: Optional[str] = None,
-    ) -> PipelineExecution:
+    ) -> PipelineExecutionAsyncModel:
         """Cancel a running or pending pipeline execution (async).
 
         Only non-terminal executions can be cancelled.
@@ -244,7 +256,8 @@ class AsyncPipelineExecutions(AsyncBaseResource):
         if reason is not None:
             body["reason"] = reason
 
-        return await self._post(f"/pipeline-executions/{pipeline_execution_id}/cancel", body=body)
+        execution_data = await self._post(f"/pipeline-executions/{pipeline_execution_id}/cancel", body=body)
+        return PipelineExecutionAsyncModel(execution_data, self._client)
 
     async def get_output(self, pipeline_execution_id: str) -> Any:
         """Get the output of a specific pipeline execution (async).

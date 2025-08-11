@@ -33,6 +33,9 @@ from .models.dataset_schema_version_async import (
     AsyncSchemaBuilder,
     DatasetSchemaVersionAsyncModel,
 )
+from .models.pipeline_async import PipelineAsyncModel
+from .models.pipeline_configuration_version_async import PipelineConfigurationVersionAsyncModel
+from .models.pipeline_execution_async import PipelineExecutionAsyncModel
 from .types import (
     APIResponse,
     Pipeline,
@@ -60,6 +63,9 @@ __all__ = [
     "AsyncSchemaBuilder",
     "FileAsyncModel",
     "UserAsyncModel",
+    "PipelineAsyncModel",
+    "PipelineConfigurationVersionAsyncModel",
+    "PipelineExecutionAsyncModel",
     # Exceptions
     "ModeratelyAIError",
     "APIError",

@@ -2,7 +2,8 @@
 
 from typing import Any, Dict, List, Optional
 
-from ..types import PaginatedResponse, PipelineConfigurationVersion
+from ..models.pipeline_configuration_version_async import PipelineConfigurationVersionAsyncModel
+from ..types import PaginatedResponse
 from ._base import AsyncBaseResource
 
 
@@ -94,9 +95,17 @@ class AsyncPipelineConfigurationVersions(AsyncBaseResource):
         if order_by is not None:
             query["orderBy"] = order_by
 
-        return await self._get("/pipeline-configuration-versions", options={"query": query})
+        response = await self._get("/pipeline-configuration-versions", options={"query": query})
 
-    async def retrieve(self, pipeline_configuration_version_id: str) -> PipelineConfigurationVersion:
+        # Convert configuration version items to rich async models
+        if "items" in response:
+            response["items"] = [
+                PipelineConfigurationVersionAsyncModel(item, self._client) for item in response["items"]
+            ]
+
+        return response
+
+    async def retrieve(self, pipeline_configuration_version_id: str) -> PipelineConfigurationVersionAsyncModel:
         """Retrieve a specific configuration version by ID (async).
 
         Args:
@@ -108,7 +117,8 @@ class AsyncPipelineConfigurationVersions(AsyncBaseResource):
         Raises:
             NotFoundError: If the version doesn't exist.
         """
-        return await self._get(f"/pipeline-configuration-versions/{pipeline_configuration_version_id}")
+        version_data = await self._get(f"/pipeline-configuration-versions/{pipeline_configuration_version_id}")
+        return PipelineConfigurationVersionAsyncModel(version_data, self._client)
 
     async def create(
         self,
@@ -116,7 +126,7 @@ class AsyncPipelineConfigurationVersions(AsyncBaseResource):
         pipeline_id: str,
         configuration: Dict[str, Any],
         **kwargs,
-    ) -> PipelineConfigurationVersion:
+    ) -> PipelineConfigurationVersionAsyncModel:
         """Create a new pipeline configuration version (async).
 
         Args:
@@ -137,7 +147,8 @@ class AsyncPipelineConfigurationVersions(AsyncBaseResource):
             **kwargs,
         }
 
-        return await self._post("/pipeline-configuration-versions", body=body)
+        version_data = await self._post("/pipeline-configuration-versions", body=body)
+        return PipelineConfigurationVersionAsyncModel(version_data, self._client)
 
     async def update(
         self,
@@ -145,7 +156,7 @@ class AsyncPipelineConfigurationVersions(AsyncBaseResource):
         *,
         configuration: Optional[Dict[str, Any]] = None,
         **kwargs,
-    ) -> PipelineConfigurationVersion:
+    ) -> PipelineConfigurationVersionAsyncModel:
         """Update an existing configuration version (async).
 
         Args:
@@ -164,7 +175,8 @@ class AsyncPipelineConfigurationVersions(AsyncBaseResource):
         if configuration is not None:
             body["configuration"] = configuration
 
-        return await self._patch(f"/pipeline-configuration-versions/{pipeline_configuration_version_id}", body=body)
+        version_data = await self._patch(f"/pipeline-configuration-versions/{pipeline_configuration_version_id}", body=body)
+        return PipelineConfigurationVersionAsyncModel(version_data, self._client)
 
     async def delete(self, pipeline_configuration_version_id: str) -> None:
         """Delete a configuration version (async).
@@ -177,7 +189,7 @@ class AsyncPipelineConfigurationVersions(AsyncBaseResource):
         """
         await self._delete(f"/pipeline-configuration-versions/{pipeline_configuration_version_id}")
 
-    async def clone(self, pipeline_configuration_version_id: str) -> PipelineConfigurationVersion:
+    async def clone(self, pipeline_configuration_version_id: str) -> PipelineConfigurationVersionAsyncModel:
         """Clone an existing configuration version (async).
 
         Creates a new version by copying an existing one. The cloned version will have
@@ -192,7 +204,8 @@ class AsyncPipelineConfigurationVersions(AsyncBaseResource):
         Raises:
             NotFoundError: If the version doesn't exist.
         """
-        return await self._post(f"/pipeline-configuration-versions/{pipeline_configuration_version_id}/clone")
+        version_data = await self._post(f"/pipeline-configuration-versions/{pipeline_configuration_version_id}/clone")
+        return PipelineConfigurationVersionAsyncModel(version_data, self._client)
 
     async def validate(self, *, configuration: Dict[str, Any]) -> Dict[str, Any]:
         """Validate a pipeline configuration (async).

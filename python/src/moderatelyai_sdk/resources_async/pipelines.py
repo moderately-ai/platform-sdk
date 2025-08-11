@@ -2,7 +2,7 @@
 
 from typing import List, Optional
 
-from ..models.pipeline import PipelineModel
+from ..models.pipeline_async import PipelineAsyncModel
 from ..types import PaginatedResponse
 from ._base import AsyncBaseResource
 
@@ -82,12 +82,12 @@ class AsyncPipelines(AsyncBaseResource):
         # Convert pipeline items to fat models
         if "items" in response:
             response["items"] = [
-                PipelineModel(item, self._client) for item in response["items"]
+                PipelineAsyncModel(item, self._client) for item in response["items"]
             ]
 
         return response
 
-    async def retrieve(self, pipeline_id: str) -> PipelineModel:
+    async def retrieve(self, pipeline_id: str) -> PipelineAsyncModel:
         """Retrieve a specific pipeline by ID (async).
 
         Args:
@@ -100,7 +100,7 @@ class AsyncPipelines(AsyncBaseResource):
             NotFoundError: If the pipeline doesn't exist.
         """
         pipeline_data = await self._get(f"/pipelines/{pipeline_id}")
-        return PipelineModel(pipeline_data, self._client)
+        return PipelineAsyncModel(pipeline_data, self._client)
 
     async def create(
         self,
@@ -108,7 +108,7 @@ class AsyncPipelines(AsyncBaseResource):
         name: str,
         description: Optional[str] = None,
         **kwargs,
-    ) -> PipelineModel:
+    ) -> PipelineAsyncModel:
         """Create a new pipeline (async).
 
         Note: The pipeline will be created in the team specified in the client.
@@ -134,7 +134,7 @@ class AsyncPipelines(AsyncBaseResource):
             body["description"] = description
 
         pipeline_data = await self._post("/pipelines", body=body)
-        return PipelineModel(pipeline_data, self._client)
+        return PipelineAsyncModel(pipeline_data, self._client)
 
     async def update(
         self,
@@ -143,7 +143,7 @@ class AsyncPipelines(AsyncBaseResource):
         name: Optional[str] = None,
         description: Optional[str] = None,
         **kwargs,
-    ) -> PipelineModel:
+    ) -> PipelineAsyncModel:
         """Update an existing pipeline (async).
 
         Args:
@@ -167,7 +167,7 @@ class AsyncPipelines(AsyncBaseResource):
             body["description"] = description
 
         pipeline_data = await self._patch(f"/pipelines/{pipeline_id}", body=body)
-        return PipelineModel(pipeline_data, self._client)
+        return PipelineAsyncModel(pipeline_data, self._client)
 
     async def delete(self, pipeline_id: str) -> None:
         """Delete a pipeline (async).

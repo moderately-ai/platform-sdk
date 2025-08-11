@@ -1,33 +1,33 @@
-"""Pipeline execution model for the Moderately AI SDK."""
+"""Async pipeline execution model for the Moderately AI SDK."""
 
-import time
+import asyncio
 from typing import Any, Dict, Optional
 
-from .._base_client import BaseClient
+from .._base_client_async import AsyncBaseClient
 from ..types import PipelineExecution
-from ._base import BaseModel
+from ._base_async import BaseAsyncModel
 
 
-class PipelineExecutionModel(BaseModel):
-    """Rich pipeline execution model with convenient methods for execution management.
+class PipelineExecutionAsyncModel(BaseAsyncModel):
+    """Rich async pipeline execution model with convenient methods for execution management.
 
-    Provides an object-oriented interface for working with pipeline executions,
+    Provides an object-oriented interface for working with pipeline executions asynchronously,
     including monitoring status, cancelling executions, and retrieving results.
 
     Examples:
         ```python
         # Get execution and check status
-        execution = client.pipeline_executions.retrieve("execution_123")
+        execution = await client.pipeline_executions.retrieve("execution_123")
         if execution.is_completed:
-            results = execution.get_output()
+            results = await execution.get_output()
             print(f"Results: {results}")
         elif execution.is_running:
             print("Execution is still running...")
-            execution = execution.wait_for_completion(timeout=300)
+            execution = await execution.wait_for_completion(timeout=300)
         ```
     """
 
-    def __init__(self, data: PipelineExecution, client: BaseClient) -> None:
+    def __init__(self, data: PipelineExecution, client: AsyncBaseClient) -> None:
         super().__init__(data, client)
 
     @property
@@ -147,27 +147,27 @@ class PipelineExecutionModel(BaseModel):
             return (self.current_step / self.total_steps) * 100.0
         return None
 
-    def refresh(self) -> "PipelineExecutionModel":
-        """Refresh execution status from the API.
+    async def refresh(self) -> "PipelineExecutionAsyncModel":
+        """Refresh execution status from the API (async).
 
         Returns:
-            Updated execution model instance.
+            Updated async execution model instance.
         """
-        updated_data = self._client._request(
+        updated_data = await self._client._request(
             method="GET",
             path=f"/pipeline-executions/{self.execution_id}",
             cast_type=dict,
         )
-        return PipelineExecutionModel(updated_data, self._client)
+        return PipelineExecutionAsyncModel(updated_data, self._client)
 
-    def cancel(self, *, reason: Optional[str] = None) -> "PipelineExecutionModel":
-        """Cancel this execution.
+    async def cancel(self, *, reason: Optional[str] = None) -> "PipelineExecutionAsyncModel":
+        """Cancel this execution (async).
 
         Args:
             reason: Optional reason for cancelling the execution.
 
         Returns:
-            Updated execution model instance.
+            Updated async execution model instance.
 
         Raises:
             ValidationError: If the execution cannot be cancelled.
@@ -176,16 +176,16 @@ class PipelineExecutionModel(BaseModel):
         if reason is not None:
             body["reason"] = reason
 
-        updated_data = self._client._request(
+        updated_data = await self._client._request(
             method="POST",
             path=f"/pipeline-executions/{self.execution_id}/cancel",
             cast_type=dict,
             body=body
         )
-        return PipelineExecutionModel(updated_data, self._client)
+        return PipelineExecutionAsyncModel(updated_data, self._client)
 
-    def get_output(self) -> Any:
-        """Get the output of this execution.
+    async def get_output(self) -> Any:
+        """Get the output of this execution (async).
 
         Handles both inline and S3-stored outputs automatically:
         - Inline: Small outputs stored directly in the API response
@@ -198,9 +198,9 @@ class PipelineExecutionModel(BaseModel):
             NotFoundError: If the execution doesn't exist or has no output.
         """
         import json
-        import urllib.request
+        import httpx
 
-        result = self._client._request(
+        result = await self._client._request(
             method="GET",
             path=f"/pipeline-executions/{self.execution_id}/output",
             cast_type=dict,
@@ -215,10 +215,11 @@ class PipelineExecutionModel(BaseModel):
             if not download_url:
                 return None
 
-            # Download from presigned S3 URL
-            request = urllib.request.Request(download_url)
-            with urllib.request.urlopen(request) as response:
-                content = response.read()
+            # Download from presigned S3 URL using async httpx
+            async with httpx.AsyncClient() as client:
+                response = await client.get(download_url)
+                response.raise_for_status()
+                content = response.content
 
                 # Check if content is compressed
                 if result.get('metadata', {}).get('compressionType') == 'gzip':
@@ -232,17 +233,17 @@ class PipelineExecutionModel(BaseModel):
             # Unknown output type or no output
             return None
 
-    def wait_for_completion(
+    async def wait_for_completion(
         self,
         *,
         timeout: Optional[int] = None,
         poll_interval: float = 2.0,
         show_progress: bool = True
-    ) -> "PipelineExecutionModel":
-        """Wait for this execution to complete with progress tracking.
+    ) -> "PipelineExecutionAsyncModel":
+        """Wait for this execution to complete with progress tracking (async).
 
         Based on the polling pattern from the demo script, this method:
-        - Polls execution status at regular intervals
+        - Polls execution status at regular intervals using asyncio.sleep()
         - Shows progress updates (steps, percentage, messages)
         - Handles terminal states (completed, failed, cancelled)
         - Provides timeout support with meaningful errors
@@ -253,12 +254,14 @@ class PipelineExecutionModel(BaseModel):
             show_progress: Whether to print progress updates to console.
 
         Returns:
-            Updated execution model instance when complete.
+            Updated async execution model instance when complete.
 
         Raises:
             TimeoutError: If execution doesn't complete within timeout.
             Exception: If execution fails or is cancelled.
         """
+        import time
+
         if show_progress:
             print("⏳ Waiting for pipeline to complete...")
 
@@ -267,10 +270,10 @@ class PipelineExecutionModel(BaseModel):
         last_progress_msg = ""
 
         while True:
-            time.sleep(poll_interval)
+            await asyncio.sleep(poll_interval)
 
             # Get current execution status
-            updated_execution = self.refresh()
+            updated_execution = await self.refresh()
             status = updated_execution.status
             current_step = updated_execution.current_step or 0
             total_steps = updated_execution.total_steps or 0
@@ -332,6 +335,15 @@ class PipelineExecutionModel(BaseModel):
                     f"Current status: {status}"
                 )
 
+    async def _refresh(self) -> None:
+        """Refresh this execution from the API."""
+        fresh_data = await self._client._request(
+            method="GET",
+            path=f"/pipeline-executions/{self.execution_id}",
+            cast_type=dict,
+        )
+        self._data = fresh_data
+
     def __repr__(self) -> str:
         progress = f", progress={self.progress_percentage:.1f}%" if self.progress_percentage is not None else ""
-        return f"PipelineExecutionModel(id='{self.execution_id}', status='{self.status}'{progress})"
+        return f"PipelineExecutionAsyncModel(id='{self.execution_id}', status='{self.status}'{progress})"
