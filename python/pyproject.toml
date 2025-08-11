@@ -30,7 +30,7 @@ dynamic = ["version"]
 
 [project.urls]
 Homepage = "https://github.com/moderately-ai/platform-sdk"
-Documentation = "https://github.com/moderately-ai/platform-sdk/tree/main/python"
+Documentation = "https://moderately-ai-platform-sdk.readthedocs.io/"
 Repository = "https://github.com/moderately-ai/platform-sdk"
 Issues = "https://github.com/moderately-ai/platform-sdk/issues"
 
@@ -139,4 +139,10 @@ exclude_lines = [
 dev = [
     "pre-commit>=3.0.0",
     "types-requests>=2.32.0.20241016",
+]
+docs = [
+    "sphinx>=7.0.0",
+    "sphinx-rtd-theme>=2.0.0",
+    "sphinx-autodoc-typehints>=2.0.0",
+    "myst-parser>=2.0.0",
 ]
