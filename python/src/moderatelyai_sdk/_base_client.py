@@ -19,7 +19,7 @@ from .types import HTTPMethod
 
 class RetryConfig:
     """Configuration for retry behavior."""
-    
+
     def __init__(
         self,
         max_retries: int = 3,
@@ -63,20 +63,20 @@ class BaseClient:
             if isinstance(timeout, (int, float)):
                 timeout = httpx.Timeout(
                     connect=10.0,  # 10s to establish connection
-                    read=timeout,   # User-specified read timeout
-                    write=30.0,     # 30s to send data
-                    pool=5.0        # 5s to get connection from pool
+                    read=timeout,  # User-specified read timeout
+                    write=30.0,  # 30s to send data
+                    pool=5.0,  # 5s to get connection from pool
                 )
-            
+
             self._client = httpx.Client(
                 timeout=timeout,
                 headers=self._build_headers(),
                 limits=httpx.Limits(
-                    max_keepalive_connections=20, 
+                    max_keepalive_connections=20,
                     max_connections=100,
-                    keepalive_expiry=30.0
+                    keepalive_expiry=30.0,
                 ),
-                follow_redirects=True
+                follow_redirects=True,
             )
 
     def _build_headers(self) -> Dict[str, str]:
@@ -113,11 +113,10 @@ class BaseClient:
         params = {**self.default_query, **options.get("query", {})}
         headers = options.get("headers", {})
         json_data = body if body is not None else None
-        
 
         # Retry logic with configurable exponential backoff
         last_exception: Optional[Exception] = None
-        
+
         for attempt in range(self.retry_config.max_retries + 1):
             try:
                 response = self._client.request(
@@ -127,19 +126,21 @@ class BaseClient:
                     json=json_data,
                     headers=headers,
                 )
-                
+
                 # Check if we should retry based on status code
-                if (attempt < self.retry_config.max_retries and 
-                    response.status_code in self.retry_config.retryable_status_codes):
+                if (
+                    attempt < self.retry_config.max_retries
+                    and response.status_code in self.retry_config.retryable_status_codes
+                ):
                     wait_time = min(
-                        self.retry_config.backoff_factor ** attempt,
-                        self.retry_config.max_backoff
+                        self.retry_config.backoff_factor**attempt,
+                        self.retry_config.max_backoff,
                     )
                     time.sleep(wait_time)
                     continue
-                    
+
                 return self._process_response(response, cast_type=cast_type)
-                
+
             except RateLimitError as e:
                 if attempt == self.retry_config.max_retries:
                     raise
@@ -147,22 +148,22 @@ class BaseClient:
                 wait_time = getattr(e, "retry_after", None)
                 if wait_time is None:
                     wait_time = min(
-                        self.retry_config.backoff_factor ** attempt,
-                        self.retry_config.max_backoff
+                        self.retry_config.backoff_factor**attempt,
+                        self.retry_config.max_backoff,
                     )
                 time.sleep(wait_time)
                 last_exception = e
-                
+
             except (httpx.TimeoutException, httpx.ConnectError, httpx.ReadError) as e:
                 if attempt == self.retry_config.max_retries:
                     raise TimeoutError(
                         f"Request failed after {self.retry_config.max_retries + 1} attempts: {str(e)}"
                     ) from e
-                    
+
                 # Exponential backoff for network errors
                 wait_time = min(
-                    self.retry_config.backoff_factor ** attempt,
-                    self.retry_config.max_backoff
+                    self.retry_config.backoff_factor**attempt,
+                    self.retry_config.max_backoff,
                 )
                 time.sleep(wait_time)
                 last_exception = e
