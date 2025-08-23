@@ -162,6 +162,13 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# Example output files
+**/output/
+**/debug/
+**/*_results.json
+**/*_output.json
+**/*_debug.log
+
 # pytype static type analyzer
 .pytype/
 

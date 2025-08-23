@@ -40,7 +40,7 @@ from ..exceptions import APIError
 from ._base_async import BaseAsyncModel
 
 if TYPE_CHECKING:
-    from .dataset_schema import AsyncSchemaBuilder, DatasetSchemaVersionAsyncModel
+    from .dataset_schema_version_async import AsyncSchemaBuilder, DatasetSchemaVersionAsyncModel
 
 from ._shared.dataset_operations import DatasetOperations
 
