@@ -13,6 +13,8 @@ Usage:
 import time
 from pathlib import Path
 
+import rich.console
+
 from moderatelyai_sdk import ModeratelyAI
 from moderatelyai_sdk.exceptions import APIError, AuthenticationError
 from moderatelyai_sdk.models.dataset import DatasetModel
@@ -20,6 +22,8 @@ from moderatelyai_sdk.models.pipeline import PipelineModel
 from moderatelyai_sdk.models.pipeline_configuration_version import (
     PipelineConfigurationVersionModel,
 )
+
+console = rich.console.Console()
 
 
 def create_context_dataset(client: ModeratelyAI) -> DatasetModel:
@@ -186,42 +190,19 @@ def execute_pipeline(
     message_history: list[dict],
 ):
     """Execute the clause extraction pipeline."""
-    print(f"\n🚀 Executing pipeline on: {context_dataset.name}")
-
     pipeline_input = {
         "context_datasets": [context_dataset.dataset_id],
         "user_input": message_history,
     }
 
-    print(f"   📄 Context: {context_dataset.dataset_id}")
-
-    execution = config_version.execute(
-        pipeline_input=pipeline_input,
-        pipeline_input_summary=f"Chat with {context_dataset.name}",
-        block=True,
-        timeout=300,
-        show_progress=True,
-    )
-
-    print(f"   ✅ Completed: {execution.status}")
-
-    # Debug execution details
-    if execution.status == "failed":
-        print(f"   📋 Execution ID: {execution.execution_id}")
-        if hasattr(execution, "_data"):
-            error_data = execution._data
-            print(f"   ❌ Error details: {error_data}")
-
-    try:
-        output = execution.get_output()
-        print(f"   📊 Output: {str(output)[:100]}...")
-        answer = output["output"]
-        print(f"   💬 Answer: {answer}")
-
-    except Exception as e:
-        print(f"   ⚠️  Could not get output: {e}")
-
-    return execution
+    with console.status("generating answer", spinner="dots"):
+        return config_version.execute(
+            pipeline_input=pipeline_input,
+            pipeline_input_summary=f"Chat with {context_dataset.name}",
+            block=True,
+            timeout=300,
+            show_progress=False,
+        )
 
 
 def main():
@@ -246,7 +227,7 @@ def main():
             # Get user input
             user_input = input("User: ")
             if user_input.lower() == "exit":
-                break
+                exit(0)
 
             message_history.append({"role": "user", "content": user_input})
 
@@ -258,11 +239,7 @@ def main():
             # Get answer
             answer = execution.get_output()["output"]
             print(f"Assistant:\n{answer}")
-
-            # Add answer to message history
-        print("\n🎉 Chat with dataset completed!")
-        print(f"   • Pipeline: {pipeline.pipeline_id}")
-        print(f"   • Execution: {execution.execution_id}")
+            message_history.append({"role": "assistant", "content": answer})
 
     except (ValueError, AuthenticationError) as e:
         print(f"❌ Setup Error: {e}")

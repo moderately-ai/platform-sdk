@@ -139,6 +139,7 @@ exclude_lines = [
 dev = [
     "pre-commit>=3.0.0",
     "types-requests>=2.32.0.20241016",
+    "rich>=14.1.0",
 ]
 docs = [
     "sphinx>=7.0.0",
