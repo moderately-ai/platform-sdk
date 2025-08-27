@@ -57,6 +57,7 @@ class AsyncFiles(AsyncBaseResource):
         dataset_id: Optional[str] = None,
         status: Optional[str] = None,
         mime_type: Optional[str] = None,
+        file_hashes: Optional[str] = None,
         page: int = 1,
         page_size: int = 10,
         order_by: str = "created_at",
@@ -70,6 +71,7 @@ class AsyncFiles(AsyncBaseResource):
             dataset_id: Filter files by dataset ID.
             status: Filter files by status (e.g., "uploaded", "processing", "ready", "error").
             mime_type: Filter files by MIME type (e.g., "text/csv", "application/pdf").
+            file_hashes: Filter files by SHA256 hash. Can be a single hash string.
             page: Page number (1-based). Defaults to 1.
             page_size: Number of items per page. Defaults to 10.
             order_by: Field to sort by. Defaults to "created_at".
@@ -90,6 +92,8 @@ class AsyncFiles(AsyncBaseResource):
             query["status"] = status
         if mime_type is not None:
             query["mime_type"] = mime_type
+        if file_hashes is not None:
+            query["fileHashes"] = file_hashes
 
         response = await self._get("/files", options={"query": query})
 

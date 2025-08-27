@@ -1,5 +1,6 @@
 """Synchronous client for the Moderately AI API."""
 
+import logging
 import os
 from typing import Any, Dict, Optional, Union
 
@@ -18,6 +19,8 @@ from .resources import (
     Users,
 )
 from .types import HTTPMethod
+
+logger = logging.getLogger(__name__)
 
 
 class ModeratelyAI(BaseClient):
@@ -113,26 +116,43 @@ class ModeratelyAI(BaseClient):
             ValueError: If no API key or team ID is provided via parameter or environment variable.
         """
         if api_key is None:
+            logger.debug(
+                "No api_key provided, using MODERATELY_API_KEY from environment"
+            )
             api_key = os.environ.get("MODERATELY_API_KEY")
+            if not api_key:
+                logger.error(
+                    'You must provide either a "api_key" client option or set the MODERATELY_API_KEY environment variable'
+                )
+                raise ValueError(
+                    "The api_key client option must be set either by passing api_key to the client or by setting the MODERATELY_API_KEY environment variable"
+                )
+        api_key_with_asterisk = api_key[:4] + "*" * (len(api_key) - 4)
+        logger.debug(f"api key is set to {api_key_with_asterisk}")
 
         if team_id is None:
+            logger.debug(
+                "No team_id provided, using MODERATELY_TEAM_ID from environment"
+            )
             team_id = os.environ.get("MODERATELY_TEAM_ID")
-
-        if api_key is None:
-            raise ValueError(
-                "The api_key client option must be set either by passing api_key to the client or by setting the MODERATELY_API_KEY environment variable"
-            )
-
-        if team_id is None:
-            raise ValueError(
-                "The team_id client option must be set either by passing team_id to the client or by setting the MODERATELY_TEAM_ID environment variable"
-            )
+            if not team_id:
+                logger.error(
+                    'You must provide either a "team_id" client option or set the MODERATELY_TEAM_ID environment variable'
+                )
+                raise ValueError(
+                    "The team_id client option must be set either by passing team_id to the client or by setting the MODERATELY_TEAM_ID environment variable"
+                )
+        logger.debug(f"team id is set to {team_id}")
 
         if base_url is None:
-            base_url = "https://api.moderately.ai"
+            base_url = os.environ.get(
+                "MODERATELY_BASE_URL", "https://api.moderately.ai"
+            )
+        logger.debug(f"base url is set to {base_url}")
 
         if timeout is None:
             timeout = 30.0
+        logger.debug(f"timeout is set to {timeout}")
 
         # Store team_id for automatic filtering
         self.team_id = team_id

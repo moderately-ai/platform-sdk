@@ -40,7 +40,7 @@ from ._base import BaseModel
 from ._shared.dataset_operations import DatasetOperations
 
 if TYPE_CHECKING:
-    from .dataset_schema import DatasetSchemaVersionModel, SchemaBuilder
+    from .dataset_schema_version import DatasetSchemaVersionModel, SchemaBuilder
 
 
 class DatasetDataVersionModel(BaseModel):

@@ -30,7 +30,6 @@ Usage:
 
 import json
 import time
-from pathlib import Path
 
 from moderatelyai_sdk import ModeratelyAI
 from moderatelyai_sdk.exceptions import APIError, AuthenticationError
@@ -50,38 +49,36 @@ def create_sample_pipeline_config():
                 "config": {
                     "json_schema": {
                         "type": "string",
-                        "description": "User-provided text input"
+                        "description": "User-provided text input",
                     }
-                }
+                },
             },
             "echo_result": {
                 "id": "echo_result",
                 "type": "output",
-                "config": {
-                    "name": "echoed_message"
-                }
-            }
+                "config": {"name": "echoed_message"},
+            },
         },
         "connections": [
             {
                 "source_port": "data",
                 "target_port": "data",
                 "source_block_id": "user_input",
-                "target_block_id": "echo_result"
+                "target_block_id": "echo_result",
             }
-        ]
+        ],
     }
-    
-    print(f"✅ Created sample pipeline configuration ({len(json.dumps(pipeline_config))} characters)")
+
+    print(
+        f"✅ Created sample pipeline configuration ({len(json.dumps(pipeline_config))} characters)"
+    )
     return pipeline_config
 
 
 def create_sample_input_data():
     """Create sample input data for pipeline execution."""
-    sample_input = {
-        "user_input": "Hello from the Moderately AI SDK pipeline example!"
-    }
-    
+    sample_input = {"user_input": "Hello from the Moderately AI SDK pipeline example!"}
+
     print(f"✅ Created sample input data: '{sample_input['user_input']}'")
     return sample_input
 
@@ -119,7 +116,7 @@ def main():
     try:
         # 2. Create Pipeline Operation
         print("\n2️⃣ Creating Pipeline...")
-        
+
         # SDK Method: client.pipelines.create(name, description=None, **kwargs)
         #
         # This maps to: POST /pipelines
@@ -138,7 +135,7 @@ def main():
         timestamp = int(time.time())
         created_pipeline = client.pipelines.create(
             name=f"Document Processing Pipeline {timestamp}",
-            description="Sample document processing pipeline for SDK demonstration"
+            description="Sample document processing pipeline for SDK demonstration",
         )
 
         print("✅ Pipeline created successfully!")
@@ -167,8 +164,7 @@ def main():
         #
         # Returns: PipelineConfigurationVersionModel instance
         config_version = created_pipeline.create_configuration_version(
-            configuration=pipeline_config,
-            status="draft"  # Create as draft first
+            configuration=pipeline_config, status="draft"  # Create as draft first
         )
 
         print("✅ Configuration version created successfully!")
@@ -179,7 +175,7 @@ def main():
 
         # Show configuration summary
         config = config_version.configuration
-        print(f"   Configuration Summary:")
+        print("   Configuration Summary:")
         print(f"     • Blocks: {len(config.get('blocks', {}))}")
         print(f"     • Connections: {len(config.get('connections', []))}")
         print(f"     • Pipeline Name: {config.get('name', 'N/A')}")
@@ -198,27 +194,27 @@ def main():
         print("✅ Configuration validation completed!")
         is_valid = validation_result.get("valid", False)
         print(f"   Valid: {is_valid}")
-        
+
         errors = validation_result.get("errors", [])
         warnings = validation_result.get("warnings", [])
-        
+
         if errors:
             print(f"   Errors ({len(errors)}):")
             for error in errors[:3]:  # Show first 3 errors
                 print(f"     • {error}")
-        
+
         if warnings:
             print(f"   Warnings ({len(warnings)}):")
             for warning in warnings[:3]:  # Show first 3 warnings
                 print(f"     • {warning}")
-        
+
         if not errors and not warnings:
             print("   No errors or warnings found")
 
         # 5. Execute Pipeline Operation (Method 1: Using ConfigurationVersionModel)
         print("\n5️⃣ Executing Pipeline (Method 1: Configuration Version)...")
         print(f"   Input text: {input_data['user_input']}")
-        print(f"   Input summary: Echo user input text")
+        print("   Input summary: Echo user input text")
 
         # SDK Method: config_version.execute(pipeline_input, pipeline_input_summary, block=False, **kwargs)
         #
@@ -244,7 +240,7 @@ def main():
             pipeline_input_summary="Echo user input text through the pipeline",
             block=True,  # Wait for completion to demonstrate full workflow
             timeout=60,  # 60 second timeout
-            show_progress=True  # Show progress updates
+            show_progress=True,  # Show progress updates
         )
 
         print("✅ Pipeline execution completed!")
@@ -266,14 +262,14 @@ def main():
         # Returns: Pipeline output data (handles both inline and S3-stored outputs)
         try:
             output = execution.get_output()
-            print(f"✅ Pipeline output retrieved!")
+            print("✅ Pipeline output retrieved!")
             if output:
                 print(f"   Output: {output}")
             else:
                 print("   Output: No output available")
         except Exception as e:
             print(f"⚠️  Could not retrieve output: {e}")
-        
+
         # Show final execution details
         print(f"   Final Status: {execution.status}")
         print(f"   Total Runtime: {execution.created_at} → {execution.completed_at}")
@@ -302,7 +298,7 @@ def main():
         executions_response = client.pipeline_executions.list(
             pipeline_ids=[created_pipeline.pipeline_id],
             page_size=5,
-            order_direction="desc"  # Most recent first
+            order_direction="desc",  # Most recent first
         )
 
         executions = executions_response["items"]
@@ -322,13 +318,15 @@ def main():
                 status_icon = "⚫"
             else:
                 status_icon = "📋"  # Pending
-            
+
             # Progress info
             progress_info = ""
             if exec_item.progress_percentage is not None:
                 progress_info = f" ({exec_item.progress_percentage:.1f}%)"
-            
-            print(f"   {status_icon} {exec_item.execution_id[:8]}... - {exec_item.status}{progress_info}")
+
+            print(
+                f"   {status_icon} {exec_item.execution_id[:8]}... - {exec_item.status}{progress_info}"
+            )
 
         # 8. List Pipeline Configuration Versions Operation
         print("\n8️⃣ Listing Configuration Versions...")
@@ -344,9 +342,11 @@ def main():
         for version in config_versions:
             status_icon = "📄" if version.status == "current" else "📝"
             version_info = f" (v{version.version})" if version.version else ""
-            print(f"   {status_icon} {version.configuration_version_id[:8]}... - {version.status}{version_info}")
+            print(
+                f"   {status_icon} {version.configuration_version_id[:8]}... - {version.status}{version_info}"
+            )
 
-        # 9. Clone Configuration Version Operation  
+        # 9. Clone Configuration Version Operation
         print("\n9️⃣ Cloning Configuration Version...")
 
         # SDK Method: config_version.clone()
@@ -365,15 +365,17 @@ def main():
         # Modify the cloned configuration
         print("\n   📝 Modifying cloned configuration...")
         modified_config = cloned_version.configuration.copy()
-        
+
         # Add a new analysis parameter
         if "analysis" in modified_config.get("blocks", {}):
-            modified_config["blocks"]["analysis"]["config"]["confidence_threshold"] = 0.9
+            modified_config["blocks"]["analysis"]["config"][
+                "confidence_threshold"
+            ] = 0.9
             modified_config["version"] = "1.1.0"  # Increment version
-            
+
         # Update the cloned version
         updated_clone = cloned_version.update(configuration=modified_config)
-        print(f"   ✅ Cloned version updated with new parameters!")
+        print("   ✅ Cloned version updated with new parameters!")
         print(f"   Updated Version: {updated_clone.version}")
 
         # 10. List Pipelines Operation
@@ -396,7 +398,7 @@ def main():
         pipelines_response = client.pipelines.list(
             page_size=5,
             order_direction="desc",  # Most recent first
-            name_like="Processing"   # Filter by name containing "Processing"
+            name_like="Processing",  # Filter by name containing "Processing"
         )
 
         pipelines = pipelines_response["items"]
@@ -427,7 +429,9 @@ def main():
         latest_executions = created_pipeline.list_executions(page_size=1)
         if latest_executions:
             latest = latest_executions[0]
-            print(f"   Latest Execution: {latest.execution_id[:8]}... ({latest.status})")
+            print(
+                f"   Latest Execution: {latest.execution_id[:8]}... ({latest.status})"
+            )
         else:
             print("   Latest Execution: None")
 
@@ -446,7 +450,7 @@ def main():
         # Returns: Updated PipelineModel instance
         created_pipeline.update(
             name="Enhanced Document Processing Pipeline",
-            description="Advanced document processing with cloned configuration support"
+            description="Advanced document processing with cloned configuration support",
         )
 
         # Refetch to show updated values
@@ -469,7 +473,9 @@ def main():
         print("  • client.pipelines.create() - Create new pipeline")
         print("  • pipeline.create_configuration_version() - Create configuration")
         print("  • config_version.validate() - Validate configuration")
-        print("  • config_version.execute(block=True) - Execute pipeline and wait for completion")
+        print(
+            "  • config_version.execute(block=True) - Execute pipeline and wait for completion"
+        )
         print("  • execution.get_output() - Retrieve pipeline execution results")
         print("  • config_version.clone() - Clone configuration")
         print("  • client.pipeline_executions.list() - List executions")
@@ -489,7 +495,7 @@ def main():
         if created_pipeline:
             try:
                 print("\n🗑️  Cleaning up: Deleting created pipeline...")
-                
+
                 # SDK Method: pipeline.delete()
                 #
                 # This maps to: DELETE /pipelines/{id}

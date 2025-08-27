@@ -31,7 +31,6 @@ Usage:
 import asyncio
 import json
 import time
-from pathlib import Path
 
 from moderatelyai_sdk import AsyncModeratelyAI
 from moderatelyai_sdk.exceptions import APIError, AuthenticationError
@@ -51,29 +50,29 @@ def create_sample_pipeline_config():
                 "config": {
                     "json_schema": {
                         "type": "string",
-                        "description": "User-provided text input"
+                        "description": "User-provided text input",
                     }
-                }
+                },
             },
             "echo_result": {
                 "id": "echo_result",
                 "type": "output",
-                "config": {
-                    "name": "echoed_message"
-                }
-            }
+                "config": {"name": "echoed_message"},
+            },
         },
         "connections": [
             {
                 "source_port": "data",
                 "target_port": "data",
                 "source_block_id": "user_input",
-                "target_block_id": "echo_result"
+                "target_block_id": "echo_result",
             }
-        ]
+        ],
     }
-    
-    print(f"✅ Created sample pipeline configuration ({len(json.dumps(pipeline_config))} characters)")
+
+    print(
+        f"✅ Created sample pipeline configuration ({len(json.dumps(pipeline_config))} characters)"
+    )
     return pipeline_config
 
 
@@ -82,7 +81,7 @@ def create_sample_input_data():
     sample_input = {
         "user_input": "Hello from the Moderately AI SDK async pipeline example!"
     }
-    
+
     print(f"✅ Created sample input data: '{sample_input['user_input']}'")
     return sample_input
 
@@ -107,7 +106,7 @@ async def main():
             try:
                 # 2. Create Pipeline Operation
                 print("\n2️⃣ Creating Pipeline...")
-                
+
                 # Async SDK Method: await client.pipelines.create(name, description=None, **kwargs)
                 #
                 # This maps to: POST /pipelines
@@ -126,7 +125,7 @@ async def main():
                 timestamp = int(time.time())
                 created_pipeline = await client.pipelines.create(
                     name=f"Async Document Processing Pipeline {timestamp}",
-                    description="Sample document processing pipeline for async SDK demonstration"
+                    description="Sample document processing pipeline for async SDK demonstration",
                 )
 
                 print("✅ Pipeline created successfully!")
@@ -139,7 +138,9 @@ async def main():
                 # 3. Create Configuration Version Operation
                 print("\n3️⃣ Creating Configuration Version...")
                 print(f"   Configuration blocks: {len(pipeline_config['blocks'])}")
-                print(f"   Configuration connections: {len(pipeline_config['connections'])}")
+                print(
+                    f"   Configuration connections: {len(pipeline_config['connections'])}"
+                )
 
                 # Async SDK Method: await pipeline.create_configuration_version(configuration, **kwargs)
                 #
@@ -156,7 +157,7 @@ async def main():
                 # Returns: PipelineConfigurationVersionAsyncModel instance
                 config_version = await created_pipeline.create_configuration_version(
                     configuration=pipeline_config,
-                    status="draft"  # Create as draft first
+                    status="draft",  # Create as draft first
                 )
 
                 print("✅ Configuration version created successfully!")
@@ -186,25 +187,27 @@ async def main():
                 print("✅ Configuration validation completed!")
                 is_valid = validation_result.get("valid", False)
                 print(f"   Valid: {is_valid}")
-                
+
                 errors = validation_result.get("errors", [])
                 warnings = validation_result.get("warnings", [])
-                
+
                 if errors:
                     print(f"   Errors ({len(errors)}):")
                     for error in errors[:3]:  # Show first 3 errors
                         print(f"     • {error}")
-                
+
                 if warnings:
                     print(f"   Warnings ({len(warnings)}):")
                     for warning in warnings[:3]:  # Show first 3 warnings
                         print(f"     • {warning}")
-                
+
                 if not errors and not warnings:
                     print("   No errors or warnings found")
 
                 # 5. Execute Pipeline Operation (Method 1: Using ConfigurationVersionAsyncModel)
-                print("\n5️⃣ Executing Pipeline (Method 1: Async Configuration Version)...")
+                print(
+                    "\n5️⃣ Executing Pipeline (Method 1: Async Configuration Version)..."
+                )
                 print(f"   Input text: {input_data['user_input']}")
                 print(f"   Input summary: Echo user input text")
 
@@ -232,12 +235,14 @@ async def main():
                     pipeline_input_summary="Echo user input text through the async pipeline",
                     block=True,  # Wait for completion to demonstrate full workflow
                     timeout=60,  # 60 second timeout
-                    show_progress=True  # Show progress updates
+                    show_progress=True,  # Show progress updates
                 )
 
                 print("✅ Async pipeline execution completed!")
                 print(f"   Execution ID: {execution.execution_id}")
-                print(f"   Configuration Version ID: {execution.configuration_version_id}")
+                print(
+                    f"   Configuration Version ID: {execution.configuration_version_id}"
+                )
                 print(f"   Status: {execution.status}")
                 print(f"   Created: {execution.created_at}")
                 print(f"   Completed: {execution.completed_at}")
@@ -261,10 +266,12 @@ async def main():
                         print("   Output: No output available")
                 except Exception as e:
                     print(f"⚠️  Could not retrieve output: {e}")
-                
+
                 # Show final execution details
                 print(f"   Final Status: {execution.status}")
-                print(f"   Total Runtime: {execution.created_at} → {execution.completed_at}")
+                print(
+                    f"   Total Runtime: {execution.created_at} → {execution.completed_at}"
+                )
                 if execution.progress_percentage is not None:
                     print(f"   Progress: {execution.progress_percentage:.1f}% complete")
 
@@ -290,14 +297,18 @@ async def main():
                 executions_response = await client.pipeline_executions.list(
                     pipeline_ids=[created_pipeline.pipeline_id],
                     page_size=5,
-                    order_direction="desc"  # Most recent first
+                    order_direction="desc",  # Most recent first
                 )
 
                 executions = executions_response["items"]
                 pagination = executions_response.get("pagination", {})
 
-                total_pages = pagination.get("totalPages", pagination.get("total_pages", 1))
-                print(f"✅ Found {len(executions)} executions (page 1 of {total_pages}):")
+                total_pages = pagination.get(
+                    "totalPages", pagination.get("total_pages", 1)
+                )
+                print(
+                    f"✅ Found {len(executions)} executions (page 1 of {total_pages}):"
+                )
                 for exec_item in executions[:3]:  # Show first 3
                     # Status icons
                     if exec_item.is_completed:
@@ -310,13 +321,15 @@ async def main():
                         status_icon = "⚫"
                     else:
                         status_icon = "📋"  # Pending
-                    
+
                     # Progress info
                     progress_info = ""
                     if exec_item.progress_percentage is not None:
                         progress_info = f" ({exec_item.progress_percentage:.1f}%)"
-                    
-                    print(f"   {status_icon} {exec_item.execution_id[:8]}... - {exec_item.status}{progress_info}")
+
+                    print(
+                        f"   {status_icon} {exec_item.execution_id[:8]}... - {exec_item.status}{progress_info}"
+                    )
 
                 # 8. List Pipeline Configuration Versions Operation
                 print("\n8️⃣ Listing Configuration Versions...")
@@ -332,9 +345,11 @@ async def main():
                 for version in config_versions:
                     status_icon = "📄" if version.status == "current" else "📝"
                     version_info = f" (v{version.version})" if version.version else ""
-                    print(f"   {status_icon} {version.configuration_version_id[:8]}... - {version.status}{version_info}")
+                    print(
+                        f"   {status_icon} {version.configuration_version_id[:8]}... - {version.status}{version_info}"
+                    )
 
-                # 9. Clone Configuration Version Operation  
+                # 9. Clone Configuration Version Operation
                 print("\n9️⃣ Cloning Configuration Version...")
 
                 # Async SDK Method: await config_version.clone()
@@ -345,21 +360,29 @@ async def main():
                 cloned_version = await config_version.clone()
 
                 print("✅ Configuration version cloned successfully!")
-                print(f"   Original Version ID: {config_version.configuration_version_id}")
-                print(f"   Cloned Version ID: {cloned_version.configuration_version_id}")
+                print(
+                    f"   Original Version ID: {config_version.configuration_version_id}"
+                )
+                print(
+                    f"   Cloned Version ID: {cloned_version.configuration_version_id}"
+                )
                 print(f"   Cloned Status: {cloned_version.status}")
                 print(f"   Cloned Version: {cloned_version.version}")
 
                 # Modify the cloned configuration
                 print("\n   📝 Modifying cloned configuration...")
                 modified_config = cloned_version.configuration.copy()
-                
+
                 # Add metadata to show it's the async version
-                modified_config["description"] = "Async version of echo pipeline with enhanced logging"
+                modified_config["description"] = (
+                    "Async version of echo pipeline with enhanced logging"
+                )
                 modified_config["version"] = "1.1.0"  # Increment version
-                    
+
                 # Update the cloned version
-                updated_clone = await cloned_version.update(configuration=modified_config)
+                updated_clone = await cloned_version.update(
+                    configuration=modified_config
+                )
                 print(f"   ✅ Cloned version updated with new parameters!")
                 print(f"   Updated Version: {updated_clone.version}")
 
@@ -383,18 +406,22 @@ async def main():
                 pipelines_response = await client.pipelines.list(
                     page_size=5,
                     order_direction="desc",  # Most recent first
-                    name_like="Processing"   # Filter by name containing "Processing"
+                    name_like="Processing",  # Filter by name containing "Processing"
                 )
 
                 pipelines = pipelines_response["items"]
                 pagination = pipelines_response.get("pagination", {})
 
-                total_pages = pagination.get("totalPages", pagination.get("total_pages", 1))
+                total_pages = pagination.get(
+                    "totalPages", pagination.get("total_pages", 1)
+                )
                 print(f"✅ Found {len(pipelines)} pipelines (page 1 of {total_pages}):")
                 for pipeline in pipelines[:3]:  # Show first 3
                     print(f"   📊 {pipeline.name}")
                     print(f"      ID: {pipeline.pipeline_id}")
-                    print(f"      Description: {pipeline.description or 'No description'}")
+                    print(
+                        f"      Description: {pipeline.description or 'No description'}"
+                    )
 
                 # 11. Pipeline Information & Rich Methods
                 print("\n1️⃣1️⃣ Pipeline Information & Rich Async Methods...")
@@ -414,7 +441,9 @@ async def main():
                 latest_executions = await created_pipeline.list_executions(page_size=1)
                 if latest_executions:
                     latest = latest_executions[0]
-                    print(f"   Latest Execution: {latest.execution_id[:8]}... ({latest.status})")
+                    print(
+                        f"   Latest Execution: {latest.execution_id[:8]}... ({latest.status})"
+                    )
                 else:
                     print("   Latest Execution: None")
 
@@ -433,12 +462,14 @@ async def main():
                 # Returns: Updated PipelineAsyncModel instance
                 await created_pipeline.update(
                     name="Enhanced Async Document Processing Pipeline",
-                    description="Advanced async document processing with cloned configuration support"
+                    description="Advanced async document processing with cloned configuration support",
                 )
 
                 # Refetch to show updated values
                 print("   Refetching pipeline to show updated properties...")
-                created_pipeline = await client.pipelines.retrieve(created_pipeline.pipeline_id)
+                created_pipeline = await client.pipelines.retrieve(
+                    created_pipeline.pipeline_id
+                )
 
                 print("✅ Pipeline updated successfully!")
                 print(f"   New Name: {created_pipeline.name}")
@@ -448,20 +479,34 @@ async def main():
                 print("\n1️⃣3️⃣ Alternative Async Execution Methods...")
                 print("   ✅ Blocking execution (demonstrated above)")
                 print("   Alternative: Non-blocking execution would use:")
-                print("   execution = await config_version.execute(input_data, summary, block=False)")
-                print("   then use await execution.refresh() to monitor progress manually")
+                print(
+                    "   execution = await config_version.execute(input_data, summary, block=False)"
+                )
+                print(
+                    "   then use await execution.refresh() to monitor progress manually"
+                )
 
                 print("\n🎉 Async pipeline operations completed successfully!")
                 print("\nSummary of Async SDK Methods Used:")
                 print("  • await client.pipelines.create() - Create new pipeline")
-                print("  • await pipeline.create_configuration_version() - Create configuration")
+                print(
+                    "  • await pipeline.create_configuration_version() - Create configuration"
+                )
                 print("  • await config_version.validate() - Validate configuration")
-                print("  • await config_version.execute(block=True) - Execute pipeline and wait for completion")
-                print("  • await execution.get_output() - Retrieve pipeline execution results")
+                print(
+                    "  • await config_version.execute(block=True) - Execute pipeline and wait for completion"
+                )
+                print(
+                    "  • await execution.get_output() - Retrieve pipeline execution results"
+                )
                 print("  • await config_version.clone() - Clone configuration")
                 print("  • await client.pipeline_executions.list() - List executions")
-                print("  • await pipeline.list_configuration_versions() - List versions")
-                print("  • await client.pipelines.list() - List pipelines with filtering")
+                print(
+                    "  • await pipeline.list_configuration_versions() - List versions"
+                )
+                print(
+                    "  • await client.pipelines.list() - List pipelines with filtering"
+                )
                 print("  • await pipeline.update() - Update pipeline properties")
 
             except APIError as e:
@@ -476,7 +521,7 @@ async def main():
                 if created_pipeline:
                     try:
                         print("\n🗑️  Cleaning up: Deleting created pipeline...")
-                        
+
                         # Async SDK Method: await pipeline.delete()
                         #
                         # This maps to: DELETE /pipelines/{id}
