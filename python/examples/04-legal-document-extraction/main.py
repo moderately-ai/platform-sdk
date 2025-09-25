@@ -12,6 +12,7 @@ Usage:
     dotenvx run -- python main.py
 """
 
+import csv
 import hashlib
 import json
 import time
@@ -25,6 +26,25 @@ from moderatelyai_sdk.models.pipeline import PipelineModel
 from moderatelyai_sdk.models.pipeline_configuration_version import (
     PipelineConfigurationVersionModel,
 )
+
+
+def merge_excerpts_with_sections(excerpts):
+    """Merge all excerpts with section labels prepended.
+
+    Excerpts from different sections are separated by double newlines.
+    """
+    if not excerpts:
+        return ""
+
+    merged_parts = []
+    for excerpt in excerpts:
+        section = excerpt.get("section", "Unknown")
+        text = excerpt.get("text", "").strip()
+        if text:
+            merged_parts.append(f"{section}: {text}")
+
+    # Join with double newlines for better readability
+    return "\n\n".join(merged_parts)
 
 
 def upload_employment_agreement(client: ModeratelyAI) -> FileModel:
@@ -320,7 +340,28 @@ def execute_pipeline(
         with open(output_file, "w", encoding="utf-8") as f:
             json.dump(output, f, indent=2, ensure_ascii=False)
 
-        print(f"   💾 Results saved to: {output_file}")
+        print(f"   💾 JSON results saved to: {output_file}")
+
+        # Generate CSV output
+        if "clause_analysis_results" in output:
+            csv_file = Path(__file__).parent / "output" / "extraction_results.csv"
+
+            with open(csv_file, "w", encoding="utf-8", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(["clause_number", "extracted_text", "reasoning"])
+
+                clauses = output["clause_analysis_results"].get("standard_clauses", [])
+                for clause in clauses:
+                    clause_number = clause.get("clause_number", "")
+                    excerpts = clause.get("excerpts", [])
+                    reasoning = clause.get("reasoning", "")
+
+                    # Merge excerpts with section labels, separated by double newlines
+                    merged_text = merge_excerpts_with_sections(excerpts)
+
+                    writer.writerow([clause_number, merged_text, reasoning])
+
+            print(f"   💾 CSV results saved to: {csv_file}")
 
     except Exception as e:
         print(f"   ⚠️  Could not get output: {e}")
