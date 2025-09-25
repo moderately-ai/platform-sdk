@@ -47,6 +47,25 @@ def merge_excerpts_with_sections(excerpts):
     return "\n\n".join(merged_parts)
 
 
+def get_clause_definitions_order():
+    """Load clause definitions CSV to get the proper order and all clause numbers."""
+    csv_path = Path(__file__).parent / "data" / "clause_definitions.csv"
+    clause_order = []
+    clause_descriptions = {}
+
+    with open(csv_path, "r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            clause_num = row.get("clause_number", "")
+            clause_desc = row.get("clause_description", "")
+            if clause_num:
+                # Store both the number and description as they appear in the CSV
+                clause_order.append((clause_num, clause_desc))
+                clause_descriptions[clause_desc] = clause_num
+
+    return clause_order, clause_descriptions
+
+
 def upload_employment_agreement(client: ModeratelyAI) -> FileModel:
     """Upload the employment agreement PDF."""
     print("\n📤 Uploading employment agreement PDF...")
@@ -346,20 +365,36 @@ def execute_pipeline(
         if "clause_analysis_results" in output:
             csv_file = Path(__file__).parent / "output" / "extraction_results.csv"
 
+            # Get the clause definitions order
+            clause_order, clause_descriptions = get_clause_definitions_order()
+
+            # Create a mapping of extracted clauses by their clause_number
+            extracted_clauses = {}
+            clauses = output["clause_analysis_results"].get("standard_clauses", [])
+            for clause in clauses:
+                clause_name = clause.get("clause_number", "")
+                if clause_name:
+                    extracted_clauses[clause_name] = clause
+
             with open(csv_file, "w", encoding="utf-8", newline="") as f:
                 writer = csv.writer(f)
                 writer.writerow(["clause_number", "extracted_text", "reasoning"])
 
-                clauses = output["clause_analysis_results"].get("standard_clauses", [])
-                for clause in clauses:
-                    clause_number = clause.get("clause_number", "")
-                    excerpts = clause.get("excerpts", [])
-                    reasoning = clause.get("reasoning", "")
+                # Write clauses in the order defined in clause_definitions.csv
+                for clause_num, clause_desc in clause_order:
+                    # Check if this clause was extracted (using description as key)
+                    if clause_desc in extracted_clauses:
+                        clause = extracted_clauses[clause_desc]
+                        excerpts = clause.get("excerpts", [])
+                        reasoning = clause.get("reasoning", "")
+                        merged_text = merge_excerpts_with_sections(excerpts)
+                    else:
+                        # Clause was not found in document
+                        merged_text = "Clause was not found in document"
+                        reasoning = "N/A"
 
-                    # Merge excerpts with section labels, separated by double newlines
-                    merged_text = merge_excerpts_with_sections(excerpts)
-
-                    writer.writerow([clause_number, merged_text, reasoning])
+                    # Use just the clause number as it appears in the input CSV
+                    writer.writerow([clause_num, merged_text, reasoning])
 
             print(f"   💾 CSV results saved to: {csv_file}")
 
